@@ -48,6 +48,62 @@
         get: () => 0,
       });
     } catch (_) {}
+    spoofWorkers();
+  }
+
+  // WKWebView's desktop mode reports "MacIntel" on the main thread but still
+  // "iPad" inside workers, and user scripts don't run there. GeForce NOW reads
+  // navigator.platform from a worker (built from a Blob URL it revokes at once)
+  // and shows its iPad "Add to Home Screen" wall. So prepend a prelude to every
+  // worker script. Blob URLs are resolved to their Blob when created, which
+  // keeps this synchronous and immune to the immediate revoke.
+  function spoofWorkers() {
+    const prelude =
+      "try{Object.defineProperty(WorkerNavigator.prototype,'platform'," +
+      "{configurable:true,get:()=>'MacIntel'})}catch(_){}\n";
+    const blobs = new Map();
+    const createObjectURL = URL.createObjectURL;
+    const revokeObjectURL = URL.revokeObjectURL;
+    URL.createObjectURL = function (obj) {
+      const url = createObjectURL.apply(this, arguments);
+      if (obj instanceof Blob) blobs.set(url, obj);
+      return url;
+    };
+    URL.revokeObjectURL = function (url) {
+      blobs.delete(String(url));
+      return revokeObjectURL.apply(this, arguments);
+    };
+
+    const wrapScript = (scriptURL, options) => {
+      const href = String(scriptURL);
+      const isModule = options && options.type === "module";
+      let parts;
+      if (blobs.has(href)) {
+        parts = [prelude, blobs.get(href)];
+      } else {
+        const abs = new URL(href, document.baseURI).href;
+        // Only same-origin scripts can be re-hosted in a Blob worker.
+        if (abs.startsWith("data:") || new URL(abs).origin !== location.origin) return scriptURL;
+        parts = [prelude, isModule
+          ? `import ${JSON.stringify(abs)};`
+          : `importScripts(${JSON.stringify(abs)});`];
+      }
+      return createObjectURL(new Blob(parts, { type: "text/javascript" }));
+    };
+
+    for (const name of ["Worker", "SharedWorker"]) {
+      const Native = window[name];
+      if (!Native) continue;
+      const Wrapped = function (scriptURL, options) {
+        if (!new.target) return Native(scriptURL, options); // throws like native
+        let url = scriptURL;
+        try { url = wrapScript(scriptURL, options); } catch (_) {}
+        return Reflect.construct(Native, [url, options], new.target);
+      };
+      Wrapped.prototype = Native.prototype;
+      Object.defineProperty(Wrapped, "name", { value: name });
+      window[name] = Wrapped;
+    }
   }
 
   // ---------------------------------------------------------------------

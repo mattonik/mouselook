@@ -1,7 +1,7 @@
 # XcodeGen spec — run `xcodegen` to produce PointerLocker.xcodeproj.
 name: PointerLocker
 options:
-  bundleIdPrefix: com.example
+  bundleIdPrefix: sk.icebear
   deploymentTarget:
     iOS: "17.0"
   createIntermediateGroups: true
@@ -10,8 +10,8 @@ settings:
     SWIFT_VERSION: "5.0"
     TARGETED_DEVICE_FAMILY: "2"   # iPad only
     CODE_SIGN_STYLE: Automatic
-    # Set your team here or in Xcode ▸ Signing & Capabilities.
-    DEVELOPMENT_TEAM: ""
+    # Change to your own team to build elsewhere.
+    DEVELOPMENT_TEAM: AR9ZHABG8Y  # IceBear s.r.o.
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
 
@@ -27,7 +27,7 @@ targets:
     settings:
       base:
         # Change to something unique to you (free Apple IDs need a unique ID).
-        PRODUCT_BUNDLE_IDENTIFIER: com.example.pointerlocker
+        PRODUCT_BUNDLE_IDENTIFIER: sk.icebear.pointerlocker
     info:
       path: Apps/PointerLocker/Info.plist
       properties:
@@ -56,7 +56,7 @@ targets:
       - path: Apps/MouseLockPrototype
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.example.mouselockprototype
+        PRODUCT_BUNDLE_IDENTIFIER: sk.icebear.mouselockprototype
     info:
       path: Apps/MouseLockPrototype/Info.plist
       properties:

@@ -161,6 +161,51 @@ await test("maxTouchPoints is spoofed to 0", async () => {
   assert.equal(await page.evaluate(() => navigator.maxTouchPoints), 0);
 });
 
+// WKWebView in desktop mode reports "MacIntel" on the main thread but "iPad"
+// inside workers, and GeForce NOW reads navigator.platform from a worker built
+// from a Blob URL that it revokes right after construction. Chromium can't be
+// made to report "iPad" in a worker, so the tests check that the worker's
+// getter was replaced (not native) as well as the value it returns.
+const workerPage = await browser.newPage();
+await workerPage.addInitScript({ content: stub });
+await workerPage.addInitScript({ content: polyfill });
+await workerPage.route("https://pointerlocker.test/**", (r) =>
+  r.fulfill({ contentType: "text/html", body: "<!doctype html><title>t</title>" }));
+await workerPage.goto("https://pointerlocker.test/");
+
+const platformFromWorker = (shared) => workerPage.evaluate((shared) => new Promise((resolve, reject) => {
+  const probe = "[navigator.platform, !/\\[native code\\]/.test(" +
+    "Object.getOwnPropertyDescriptor(WorkerNavigator.prototype, 'platform').get)]";
+  const src = shared
+    ? `onconnect = (e) => e.ports[0].postMessage(${probe});`
+    : `postMessage(${probe});`;
+  const url = URL.createObjectURL(new Blob([src], { type: "text/javascript" }));
+  const w = shared ? new SharedWorker(url) : new Worker(url);
+  URL.revokeObjectURL(url);
+  const port = shared ? w.port : w;
+  port.onmessage = (e) => resolve(e.data);
+  w.onerror = () => reject(new Error("worker failed to start"));
+  setTimeout(() => reject(new Error("worker timed out")), 2000);
+}), shared);
+
+await test("worker navigator.platform is spoofed to MacIntel", async () => {
+  assert.deepEqual(await platformFromWorker(false), ["MacIntel", true]);
+});
+
+await test("shared worker navigator.platform is spoofed to MacIntel", async () => {
+  assert.deepEqual(await platformFromWorker(true), ["MacIntel", true]);
+});
+
+await test("workers still run their own code", async () => {
+  const r = await workerPage.evaluate(() => new Promise((resolve) => {
+    const w = new Worker(URL.createObjectURL(new Blob(
+      ["onmessage = (e) => postMessage(e.data * 2);"], { type: "text/javascript" })));
+    w.onmessage = (e) => resolve(e.data);
+    w.postMessage(21);
+  }));
+  assert.equal(r, 42);
+});
+
 await browser.close();
 if (failures) {
   console.log(`\n${failures} test(s) failed`);
