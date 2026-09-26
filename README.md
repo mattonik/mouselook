@@ -69,8 +69,9 @@ xcodegen                      # generates PointerLocker.xcodeproj
 open PointerLocker.xcodeproj
 ```
 
-1. For each target, go to **Signing & Capabilities**. Pick your team and change
-   the bundle identifier to something unique, such as `sk.yourname.pointerlocker`.
+1. `project.yml` signs with the IceBear s.r.o. team and `sk.icebear.*` bundle
+   IDs. To build with another account, change `DEVELOPMENT_TEAM` and the bundle
+   IDs there (or under **Signing & Capabilities** in Xcode) to your own.
 2. Choose the **PointerLocker** scheme and your iPad, then Run. With a free
    Apple ID the app must be re-signed every 7 days.
 3. Pair a mouse or trackpad and a keyboard. Run the app **full screen**: iPadOS
