@@ -18,6 +18,9 @@ final class BrowserViewController: UIViewController {
     private var pageWantsLock = false
     private var systemLocked = false
     private var observers: [NSObjectProtocol] = []
+    #if DEBUG && targetEnvironment(simulator)
+    private var debugBridge: DebugBridge?
+    #endif
 
     override var prefersPointerLocked: Bool { pageWantsLock }
     override var prefersHomeIndicatorAutoHidden: Bool { true }
@@ -53,6 +56,11 @@ final class BrowserViewController: UIViewController {
         setUpUnlockGesture()
         observeSystemState()
 
+        #if DEBUG && targetEnvironment(simulator)
+        debugBridge = DebugBridge(webView: webView)
+        debugBridge?.start()
+        #endif
+
         webView.load(URLRequest(url: Settings.homeURL))
     }
 
@@ -62,7 +70,9 @@ final class BrowserViewController: UIViewController {
         let config = WKWebViewConfiguration()
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
-        config.preferences.isElementFullscreenEnabled = true
+        // Off: the polyfill emulates the Fullscreen API in-page. Native element
+        // fullscreen reparents the web view out of this controller.
+        config.preferences.isElementFullscreenEnabled = false
         config.defaultWebpagePreferences.preferredContentMode = .desktop
         config.userContentController.add(WeakScriptMessageHandler(self), name: "pointerLocker")
         installUserScripts(in: config.userContentController)

@@ -274,6 +274,82 @@
   );
 
   // ---------------------------------------------------------------------
+  // Fullscreen API, emulated in-page. The app is already full screen, and
+  // native element fullscreen moves the WKWebView into WebKit's own window:
+  // the app's view controller (and its prefersPointerLocked) is no longer in
+  // charge, and on exit the web view comes back at 0x0. So pin the element
+  // over the viewport with CSS instead and report it as the fullscreen one.
+  // ---------------------------------------------------------------------
+  const FULLSCREEN_ATTR = "data-pointerlocker-fullscreen";
+  let fullscreenElement = null;
+
+  const fullscreenStyle = document.createElement("style");
+  fullscreenStyle.textContent =
+    `[${FULLSCREEN_ATTR}]{position:fixed!important;inset:0!important;` +
+    "width:100vw!important;height:100vh!important;max-width:none!important;" +
+    "max-height:none!important;margin:0!important;box-sizing:border-box!important;" +
+    "z-index:2147483647!important;transform:none!important}";
+  const attachFullscreenStyle = () =>
+    (document.head || document.documentElement).appendChild(fullscreenStyle);
+  if (document.documentElement) attachFullscreenStyle();
+  else document.addEventListener("DOMContentLoaded", attachFullscreenStyle, { once: true });
+
+  const setFullscreen = (el) => {
+    const previous = fullscreenElement;
+    if (el === previous) return;
+    if (previous) previous.removeAttribute(FULLSCREEN_ATTR);
+    if (el) el.setAttribute(FULLSCREEN_ATTR, "");
+    fullscreenElement = el;
+    if (!fullscreenStyle.isConnected) attachFullscreenStyle();
+    const target = el || previous;
+    setTimeout(() => {
+      // Fired at the element (bubbling to the document), or at the document
+      // if the element has since been removed, like real browsers.
+      const at = target.isConnected ? target : document;
+      for (const type of ["fullscreenchange", "webkitfullscreenchange"]) {
+        at.dispatchEvent(new Event(type, { bubbles: true, composed: true }));
+      }
+    }, 0);
+  };
+
+  function requestFullscreen() {
+    if (!(this instanceof Element) || !this.isConnected) {
+      setTimeout(() => document.dispatchEvent(new Event("fullscreenerror", { bubbles: true })), 0);
+      return Promise.reject(new TypeError("Element is not in a document"));
+    }
+    setFullscreen(this);
+    return Promise.resolve();
+  }
+
+  function exitFullscreen() {
+    setFullscreen(null);
+    return Promise.resolve();
+  }
+
+  for (const name of ["requestFullscreen", "webkitRequestFullscreen", "webkitRequestFullScreen"]) {
+    defineMethod(Element.prototype, name, requestFullscreen);
+  }
+  for (const name of ["exitFullscreen", "webkitExitFullscreen", "webkitCancelFullScreen"]) {
+    defineMethod(Document.prototype, name, exitFullscreen);
+  }
+  const fullscreenGetters = {
+    fullscreenElement: () => fullscreenElement,
+    webkitFullscreenElement: () => fullscreenElement,
+    webkitCurrentFullScreenElement: () => fullscreenElement,
+    fullscreen: () => !!fullscreenElement,
+    webkitIsFullScreen: () => !!fullscreenElement,
+    fullscreenEnabled: () => true,
+    webkitFullscreenEnabled: () => true,
+  };
+  for (const [name, get] of Object.entries(fullscreenGetters)) {
+    Object.defineProperty(Document.prototype, name, { configurable: true, get });
+  }
+
+  new MutationObserver(() => {
+    if (fullscreenElement && !fullscreenElement.isConnected) setFullscreen(null);
+  }).observe(document, { childList: true, subtree: true });
+
+  // ---------------------------------------------------------------------
   // Synthetic input
   // ---------------------------------------------------------------------
   const BUTTON_BITS = [1, 4, 2]; // button index -> buttons bit (0=L,1=M,2=R)
