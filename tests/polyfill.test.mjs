@@ -161,6 +161,57 @@ await test("maxTouchPoints is spoofed to 0", async () => {
   assert.equal(await page.evaluate(() => navigator.maxTouchPoints), 0);
 });
 
+// Native element fullscreen moves the WKWebView out of the app's view
+// controller (and back at 0x0), so the polyfill emulates it in-page.
+await test("requestFullscreen is emulated: element fills the viewport, events fire", async () => {
+  const r = await page.evaluate(async () => {
+    document.body.insertAdjacentHTML("beforeend",
+      `<main id="fs" style="width:50px;height:40px;margin:30px"><video id="v"></video></main>`);
+    const el = document.getElementById("fs");
+    const events = [];
+    document.addEventListener("fullscreenchange", () => events.push(["fullscreenchange", document.fullscreenElement?.id]));
+    document.addEventListener("webkitfullscreenchange", () => events.push(["webkitfullscreenchange"]));
+    await el.requestFullscreen();
+    await new Promise((res) => setTimeout(res, 20));
+    const rect = el.getBoundingClientRect();
+    return {
+      events, enabled: document.fullscreenEnabled,
+      el: document.fullscreenElement?.id, webkitEl: document.webkitFullscreenElement?.id,
+      webkitIs: document.webkitIsFullScreen,
+      rect: [rect.x, rect.y, rect.width, rect.height], viewport: [innerWidth, innerHeight],
+    };
+  });
+  assert.equal(r.enabled, true);
+  assert.equal(r.el, "fs");
+  assert.equal(r.webkitEl, "fs");
+  assert.equal(r.webkitIs, true);
+  assert.deepEqual(r.rect, [0, 0, ...r.viewport]);
+  assert.deepEqual(r.events, [["fullscreenchange", "fs"], ["webkitfullscreenchange"]]);
+});
+
+await test("exitFullscreen restores the element and clears fullscreenElement", async () => {
+  const r = await page.evaluate(async () => {
+    const el = document.getElementById("fs");
+    await document.exitFullscreen();
+    await new Promise((res) => setTimeout(res, 20));
+    const rect = el.getBoundingClientRect();
+    return { el: document.fullscreenElement, rect: [rect.width, rect.height] };
+  });
+  assert.equal(r.el, null);
+  assert.deepEqual(r.rect, [50, 40]);
+});
+
+await test("removing the fullscreen element exits fullscreen", async () => {
+  const r = await page.evaluate(async () => {
+    const el = document.getElementById("fs");
+    await el.requestFullscreen();
+    el.remove();
+    await new Promise((res) => setTimeout(res, 20));
+    return document.fullscreenElement;
+  });
+  assert.equal(r, null);
+});
+
 // WKWebView in desktop mode reports "MacIntel" on the main thread but "iPad"
 // inside workers, and GeForce NOW reads navigator.platform from a worker built
 // from a Blob URL that it revokes right after construction. Chromium can't be

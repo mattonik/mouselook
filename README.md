@@ -43,6 +43,13 @@ What the polyfill provides:
 - Real mouse events are swallowed while the lock is on, so clicks aren't
   delivered twice.
 - The lock is released when the locked element is removed from the document.
+- The Fullscreen API is emulated in the page: the element is pinned over the
+  viewport. The app is already full screen, and native element fullscreen
+  would move the web view out of the app's view controller. Pointer lock would
+  then stop working, and the web view comes back at 0×0, so the stream goes
+  black.
+- Web Workers also see the Mac `navigator.platform`. GeForce NOW checks it
+  there, so they need it too.
 
 It also reports `navigator.maxTouchPoints = 0` and uses a Mac Safari user
 agent. Without that, GeForce NOW detects the iPad and serves its touch/PWA
@@ -94,6 +101,15 @@ look comes out inverted, toggle *Invert vertical*.
 PointerLocker to get the Web Inspector for the page. There you can check
 `window.__pointerLocker.isLocked` and watch events arrive.
 
+In the simulator, Debug builds also run a small remote console
+([`DebugBridge.swift`](Apps/PointerLocker/DebugBridge.swift)), so you can script
+the page from the Mac's terminal:
+
+```sh
+python3 tools/debug-bridge.py &
+curl -s --data-binary 'return document.pointerLockElement?.id' localhost:8766/eval
+```
+
 ### Tests
 
 The polyfill is tested in headless Chromium by driving the same batch protocol
@@ -108,10 +124,10 @@ targets for the Simulator on a macOS runner.
 
 ## Known risks and what to try
 
-- **`event.isTrusted`.** Synthetic events have `isTrusted === false`. If GeForce
-  NOW filters on it, mouse-look won't work even though the lock succeeds. You
-  can check in Web Inspector whether the stream reacts to
-  `__pointerLocker.batch([["m",50,0]])`. If it doesn't, the fallback is the
+- **`event.isTrusted`.** Synthetic events have `isTrusted === false`. Tested
+  in the simulator (Sept 2026): GeForce NOW doesn't filter on it. Each
+  `__pointerLocker.batch([["m",dx,dy]])` while locked becomes one message on
+  its `input_channel_v1` data channel. If that ever changes, the fallback is the
   WebKit-fork plan in [`docs/webkit-fork-plan.md`](docs/webkit-fork-plan.md),
   which produces trusted events.
 - **Browser detection.** GeForce NOW may still redirect or block. You can try
