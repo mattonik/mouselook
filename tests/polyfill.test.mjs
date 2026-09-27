@@ -103,6 +103,32 @@ await test("chorded right button is a pointermove, plus contextmenu/auxclick", a
   ]);
 });
 
+// GeForce NOW's locked-mode input reads mousedown/mouseup (one per button,
+// chords included), so aim-and-fire needs a mousedown/mouseup per left click
+// while right stays held.
+await test("hold right to aim, click left twice to fire, release right", async () => {
+  await page.evaluate(() => {
+    window.__log = [];
+    window.__pointerLocker.batch([
+      ["b", 2, true],
+      ["m", 3, 0],
+      ["b", 0, true], ["b", 0, false],
+      ["b", 0, true], ["b", 0, false],
+      ["b", 2, false],
+    ]);
+  });
+  const log = await page.evaluate(() => window.__log
+    .filter((e) => e.t.startsWith("mouse") && e.t !== "mousemove" || e.t === "mousemove" && e.buttons)
+    .map((e) => [e.t, e.button, e.buttons]));
+  assert.deepEqual(log, [
+    ["mousedown", 2, 2],
+    ["mousemove", 0, 2],                        // aiming: right still held
+    ["mousedown", 0, 3], ["mouseup", 0, 2],     // shot 1
+    ["mousedown", 0, 3], ["mouseup", 0, 2],     // shot 2
+    ["mouseup", 2, 0],
+  ]);
+});
+
 await test("side buttons (back/forward) are buttons 3 and 4", async () => {
   await page.evaluate(() => {
     window.__log = [];
