@@ -103,6 +103,20 @@ await test("chorded right button is a pointermove, plus contextmenu/auxclick", a
   ]);
 });
 
+await test("side buttons (back/forward) are buttons 3 and 4", async () => {
+  await page.evaluate(() => {
+    window.__log = [];
+    window.__pointerLocker.batch([["b", 3, true], ["b", 4, true], ["b", 4, false], ["b", 3, false]]);
+  });
+  const log = await page.evaluate(() => window.__log.map((e) => [e.t, e.button, e.buttons]));
+  assert.deepEqual(log, [
+    ["pointerdown", 3, 8], ["mousedown", 3, 8],
+    ["pointermove", 4, 24], ["mousedown", 4, 24],
+    ["pointermove", 4, 8], ["mouseup", 4, 8], ["auxclick", 4, 8],
+    ["pointerup", 3, 0], ["mouseup", 3, 0], ["auxclick", 3, 0],
+  ]);
+});
+
 await test("duplicate button state is ignored", async () => {
   await page.evaluate(() => { window.__log = []; window.__pointerLocker.batch([["b", 0, false]]); });
   assert.equal(await page.evaluate(() => window.__log.length), 0);
