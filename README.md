@@ -97,6 +97,18 @@ look comes out inverted, toggle *Invert vertical*.
 
 ### Debugging
 
+Turn on **Debug overlay** in the ⋯ menu. The page reloads, and a small panel in
+the bottom right shows:
+
+- **lock**: the page's lock, the system pointer lock, and connected mice
+- **mouse**: raw GCMouse events/s against the mousemove events/s the page receives
+- **input**: buttons and keys held, and click counts per button, as the page sees them
+- **stream**: resolution, fps, codec, bitrate, round-trip time, jitter, loss and dropped frames
+
+If `page ●` shows but `system ○` doesn't, iPadOS refused the pointer lock. On
+iPadOS 26 the app can open as a resizable window. Maximize it, because only a
+full-screen app gets the lock.
+
 `isInspectable` is on. On a Mac, open Safari ▸ Develop ▸ *your iPad* ▸
 PointerLocker to get the Web Inspector for the page. There you can check
 `window.__pointerLocker.isLocked` and watch events arrive.

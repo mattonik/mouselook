@@ -297,6 +297,52 @@ await test("workers still run their own code", async () => {
   assert.equal(r, 42);
 });
 
+// Debug overlay (debug-hud.js), injected after the polyfill when enabled.
+const hud = readFileSync(
+  new URL("../Apps/PointerLocker/Resources/debug-hud.js", import.meta.url), "utf8");
+const hudPage = await browser.newPage();
+await hudPage.addInitScript({ content: stub });
+await hudPage.addInitScript({ content: polyfill });
+await hudPage.addInitScript({ content: hud });
+await hudPage.goto(`data:text/html,<canvas id="c" width="200" height="200"></canvas>`);
+const hudText = () => hudPage.evaluate(async () => {
+  window.__pointerLockerHUD.render();
+  return document.getElementById("pointerlocker-hud").textContent;
+});
+
+await test("HUD tracks peer connections created by the page", async () => {
+  const n = await hudPage.evaluate(() => {
+    const pc = new RTCPeerConnection();
+    return [pc instanceof RTCPeerConnection, window.__pointerLockerHUD.peerCount];
+  });
+  assert.deepEqual(n, [true, 1]);
+});
+
+await test("HUD shows native lock state and held buttons and keys as the page sees them", async () => {
+  await hudPage.evaluate(async () => {
+    window.__pointerLockerHUD.native({ pageLock: true, systemLock: false, mice: 1, rawRate: 250 });
+    await document.getElementById("c").requestPointerLock();
+    window.__pointerLocker.batch([["b", 2, true], ["b", 0, true], ["m", 5, 0]]);
+    document.dispatchEvent(new KeyboardEvent("keydown", { code: "KeyW", bubbles: true }));
+  });
+  const text = await hudText();
+  assert.match(text, /page ● +system ○ +mice 1/);
+  assert.match(text, /raw 250\/s/);
+  assert.match(text, /held L R/);
+  assert.match(text, /keys KeyW/);
+});
+
+await test("HUD counts clicks per button and clears released ones", async () => {
+  await hudPage.evaluate(() => {
+    window.__pointerLocker.batch([["b", 0, false], ["b", 2, false], ["w", 0, 40]]);
+    document.dispatchEvent(new KeyboardEvent("keyup", { code: "KeyW", bubbles: true }));
+  });
+  const text = await hudText();
+  assert.match(text, /held -/);
+  assert.match(text, /keys -/);
+  assert.match(text, /clicks L1 M0 R1 B0 F0 +wheel 1/);
+});
+
 await browser.close();
 if (failures) {
   console.log(`\n${failures} test(s) failed`);

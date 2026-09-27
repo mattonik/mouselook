@@ -1,3 +1,4 @@
+import GameController
 import UIKit
 import WebKit
 
@@ -18,6 +19,7 @@ final class BrowserViewController: UIViewController {
     private var pageWantsLock = false
     private var systemLocked = false
     private var observers: [NSObjectProtocol] = []
+    private var hudTimer: Timer?
     #if DEBUG && targetEnvironment(simulator)
     private var debugBridge: DebugBridge?
     #endif
@@ -29,6 +31,7 @@ final class BrowserViewController: UIViewController {
 
     deinit {
         observers.forEach { NotificationCenter.default.removeObserver($0) }
+        hudTimer?.invalidate()
     }
 
     override func viewDidLoad() {
@@ -102,6 +105,34 @@ final class BrowserViewController: UIViewController {
             injectionTime: .atDocumentStart,
             forMainFrameOnly: true
         ))
+
+        if Settings.debugHUD,
+           let hudURL = Bundle.main.url(forResource: "debug-hud", withExtension: "js"),
+           let hud = try? String(contentsOf: hudURL, encoding: .utf8) {
+            controller.addUserScript(WKUserScript(source: hud, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        }
+        updateHUDTimer()
+    }
+
+    /// Push native state (lock, mice, raw input rate) to the debug overlay.
+    private func updateHUDTimer() {
+        hudTimer?.invalidate()
+        hudTimer = nil
+        guard Settings.debugHUD else { return }
+        var lastCount = bridge.rawEventCount
+        var lastTime = CACurrentMediaTime()
+        hudTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                let now = CACurrentMediaTime()
+                let rate = Int((Double(self.bridge.rawEventCount - lastCount) / (now - lastTime)).rounded())
+                lastCount = self.bridge.rawEventCount
+                lastTime = now
+                let state = "{pageLock:\(self.pageWantsLock),systemLock:\(self.isSystemPointerLocked)," +
+                    "mice:\(GCMouse.mice().count),rawRate:\(rate)}"
+                self.webView.evaluateJavaScript("window.__pointerLockerHUD&&window.__pointerLockerHUD.native(\(state))")
+            }
+        }
     }
 
     /// Rebuild scripts and user agent after a settings change, then reload.
@@ -204,9 +235,14 @@ final class BrowserViewController: UIViewController {
             self?.applySettingsAndReload()
         }
 
+        let hud = UIAction(title: "Debug overlay (reloads)", state: Settings.debugHUD ? .on : .off) { [weak self] _ in
+            Settings.debugHUD.toggle()
+            self?.applySettingsAndReload()
+        }
+
         let help = UIAction(title: "Unlock: hold Esc or three-finger tap", attributes: .disabled) { _ in }
 
-        return [navigation, UIMenu(options: .displayInline, children: [sensitivity, invert, spoof]), help]
+        return [navigation, UIMenu(options: .displayInline, children: [sensitivity, invert, spoof, hud]), help]
     }
 
     private func promptForURL() {
