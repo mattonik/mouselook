@@ -8,7 +8,7 @@ import WebKit
 ///  1. Page calls `element.requestPointerLock()` → polyfill posts `{type: "lock"}`.
 ///  2. We flip `prefersPointerLocked` (UIKit hides and freezes the system
 ///     pointer) and activate MouseBridge (raw GCMouse deltas → page).
-///  3. Hold Escape, three-finger tap, app switch, navigation or the system
+///  3. Hold Escape, ⌘., three-finger tap, app switch, navigation or the system
 ///     dropping the lock → page gets `pointerlockchange` and we release.
 final class BrowserViewController: UIViewController {
     private var webView: WKWebView!
@@ -240,9 +240,16 @@ final class BrowserViewController: UIViewController {
             self?.applySettingsAndReload()
         }
 
-        let help = UIAction(title: "Unlock: hold Esc or three-finger tap", attributes: .disabled) { _ in }
+        let microphone = UIMenu(title: "Microphone", image: UIImage(systemName: "mic"),
+                                children: MicrophoneAccess.allCases.map { access in
+            UIAction(title: access.title, state: Settings.microphone == access ? .on : .off) { _ in
+                Settings.microphone = access
+            }
+        })
 
-        return [navigation, UIMenu(options: .displayInline, children: [sensitivity, invert, spoof, hud]), help]
+        let help = UIAction(title: "Release mouse: hold Esc, ⌘. or three-finger tap", attributes: .disabled) { _ in }
+
+        return [navigation, UIMenu(options: .displayInline, children: [sensitivity, invert, microphone, spoof, hud]), help]
     }
 
     private func promptForURL() {
@@ -309,6 +316,25 @@ final class BrowserViewController: UIViewController {
         view.addGestureRecognizer(tap)
     }
 
+    /// ⌘. releases the mouse, for keyboards without Esc. As a key command it is
+    /// handled here, before the page, so the game never sees it.
+    override var keyCommands: [UIKeyCommand]? {
+        let unlock = UIKeyCommand(title: "Release Mouse", action: #selector(unlockKeyCommand),
+                                  input: ".", modifierFlags: .command)
+        unlock.wantsPriorityOverSystemBehavior = true
+        return [unlock]
+    }
+
+    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        // Only while locked; otherwise ⌘. goes to the page as usual.
+        if action == #selector(unlockKeyCommand) { return pageWantsLock }
+        return super.canPerformAction(action, withSender: sender)
+    }
+
+    @objc private func unlockKeyCommand() {
+        forceUnlock()
+    }
+
     @objc private func threeFingerTap() {
         forceUnlock()
     }
@@ -371,6 +397,32 @@ extension BrowserViewController: WKUIDelegate {
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in completionHandler(false) })
         alert.addAction(UIAlertAction(title: "OK", style: .default) { _ in completionHandler(true) })
         presentDialog(alert, orElse: { completionHandler(false) })
+    }
+
+    /// Answer microphone requests from the saved setting, so WebKit doesn't ask
+    /// on every page load. "Ask" shows one prompt and remembers the answer.
+    func webView(_ webView: WKWebView, requestMediaCapturePermissionFor origin: WKSecurityOrigin,
+                 initiatedByFrame frame: WKFrameInfo, type: WKMediaCaptureType,
+                 decisionHandler: @escaping (WKPermissionDecision) -> Void) {
+        guard type == .microphone else { return decisionHandler(.prompt) }
+        switch Settings.microphone {
+        case .allow: decisionHandler(.grant)
+        case .deny: decisionHandler(.deny)
+        case .ask:
+            let alert = UIAlertController(
+                title: "Allow \(origin.host) to use the microphone?",
+                message: "Used for in-game voice chat. You can change this later under ⋯ ▸ Microphone.",
+                preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Don't Allow", style: .cancel) { _ in
+                Settings.microphone = .deny
+                decisionHandler(.deny)
+            })
+            alert.addAction(UIAlertAction(title: "Allow", style: .default) { _ in
+                Settings.microphone = .allow
+                decisionHandler(.grant)
+            })
+            presentDialog(alert, orElse: { decisionHandler(.prompt) })
+        }
     }
 
     private func presentDialog(_ alert: UIAlertController, orElse fallback: @escaping () -> Void) {
