@@ -27,6 +27,10 @@ final class MouseBridge {
     var sensitivity: Float = 1
     var invertY = false
 
+    /// Raw GCMouse events received (moves, buttons, scroll), locked or not.
+    /// Read and reset by the debug overlay.
+    var rawEventCount = 0
+
     /// DOM wheel pixels per GCMouse scroll unit.
     private let wheelScale: Float = 20
 
@@ -93,12 +97,14 @@ final class MouseBridge {
     // MARK: - Event queueing
 
     private func moved(dx: Float, dy: Float) {
+        rawEventCount += 1
         guard isActive else { return }
         pendingX += dx * sensitivity
         pendingY += (invertY ? dy : -dy) * sensitivity
     }
 
     private func button(_ index: Int, _ pressed: Bool) {
+        rawEventCount += 1
         guard isActive else { return }
         queueMovement()
         queued.append("[\"b\",\(index),\(pressed)]")
@@ -106,6 +112,7 @@ final class MouseBridge {
     }
 
     private func scrolled(x: Float, y: Float) {
+        rawEventCount += 1
         guard isActive, x != 0 || y != 0 else { return }
         queueMovement()
         queued.append("[\"w\",\(Int((x * wheelScale).rounded())),\(Int((-y * wheelScale).rounded()))]")

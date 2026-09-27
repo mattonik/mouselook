@@ -38,4 +38,10 @@ enum Settings {
         get { defaults.object(forKey: "spoofDesktop") as? Bool ?? true }
         set { defaults.set(newValue, forKey: "spoofDesktop") }
     }
+
+    /// Show the debug overlay (lock state, input, stream stats).
+    static var debugHUD: Bool {
+        get { defaults.bool(forKey: "debugHUD") }
+        set { defaults.set(newValue, forKey: "debugHUD") }
+    }
 }
