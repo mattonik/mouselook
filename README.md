@@ -59,9 +59,15 @@ client, which never requests pointer lock. You can turn this off in the menu.
 
 - **Hold Esc for 1 second**, the same gesture GeForce NOW uses. A short tap on
   Esc still reaches the game.
-- **Three-finger tap** on the screen. This is for keyboards without an Esc key,
-  such as the Magic Keyboard. You can also remap Caps Lock to Escape under
-  Settings ▸ General ▸ Keyboard ▸ Hardware Keyboard ▸ Modifier Keys.
+- **⌘ + .** (Command-period), for keyboards without an Esc key, such as the
+  2020–2022 Magic Keyboard or the Smart Keyboard Folio. The app handles it, so
+  the game never receives it.
+- **Three-finger tap** on the screen.
+
+On a keyboard without Esc, use **⌘ + Delete** to send Esc to the game (for
+menus). GeForce NOW maps that combination on Safari. You can also remap Caps
+Lock to Escape under Settings ▸ General ▸ Keyboard ▸ Hardware Keyboard ▸
+Modifier Keys.
 - The lock is released automatically when you switch apps, the page
   navigates, or the system drops the pointer lock (for example, when you enter
   Stage Manager).
@@ -86,8 +92,8 @@ open PointerLocker.xcodeproj
    visible, a toast explains why.
 
 The **⋯ button** in the bottom-left corner has Back, Reload, Home, Open URL,
-mouse sensitivity, invert vertical, and the "Pretend to be a Mac" toggle. It
-hides while the pointer is locked.
+mouse sensitivity, invert vertical, microphone access, the "Pretend to be a
+Mac" toggle, and the debug overlay. It hides while the pointer is locked.
 
 The **MouseLockPrototype** scheme is milestone 1 from the brief. It's a bare
 GCMouse delta viewer. Run it first to confirm that your mouse gives smooth,

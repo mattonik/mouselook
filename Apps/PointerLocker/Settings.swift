@@ -39,9 +39,28 @@ enum Settings {
         set { defaults.set(newValue, forKey: "spoofDesktop") }
     }
 
+    /// Whether pages may use the microphone. `.ask` shows the app's own prompt
+    /// once and remembers the answer, instead of WebKit asking every session.
+    static var microphone: MicrophoneAccess {
+        get { defaults.string(forKey: "microphone").flatMap(MicrophoneAccess.init) ?? .ask }
+        set { defaults.set(newValue.rawValue, forKey: "microphone") }
+    }
+
     /// Show the debug overlay (lock state, input, stream stats).
     static var debugHUD: Bool {
         get { defaults.bool(forKey: "debugHUD") }
         set { defaults.set(newValue, forKey: "debugHUD") }
+    }
+}
+
+enum MicrophoneAccess: String, CaseIterable {
+    case ask, allow, deny
+
+    var title: String {
+        switch self {
+        case .ask: "Ask"
+        case .allow: "Allow"
+        case .deny: "Don't Allow"
+        }
     }
 }
