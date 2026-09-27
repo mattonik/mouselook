@@ -20,7 +20,8 @@ final class BrowserViewController: UIViewController {
     private var systemLocked = false
     private var observers: [NSObjectProtocol] = []
     private var hudTimer: Timer?
-    #if DEBUG && targetEnvironment(simulator)
+    private let keepAlive = BackgroundKeepAlive()
+    #if DEBUG
     private var debugBridge: DebugBridge?
     #endif
 
@@ -59,7 +60,7 @@ final class BrowserViewController: UIViewController {
         setUpUnlockGesture()
         observeSystemState()
 
-        #if DEBUG && targetEnvironment(simulator)
+        #if DEBUG
         debugBridge = DebugBridge(webView: webView)
         debugBridge?.start()
         #endif
@@ -184,6 +185,29 @@ final class BrowserViewController: UIViewController {
         observers.append(center.addObserver(forName: UIScene.willDeactivateNotification, object: nil, queue: .main) { [weak self] _ in
             self?.forceUnlock()
         })
+        observers.append(center.addObserver(forName: UIScene.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.didEnterBackground()
+        })
+        observers.append(center.addObserver(forName: UIScene.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.keepAlive.stop()
+        })
+    }
+
+    // MARK: - Background
+
+    /// Keep the stream's session alive for the chosen time after an app
+    /// switch (see BackgroundKeepAlive), then pause all media so the system
+    /// can suspend the app as usual. "Off" pauses right away. Only while a
+    /// stream is playing, so browsing the library doesn't keep the app awake.
+    private func didEnterBackground() {
+        let streaming = "!![...document.querySelectorAll('video')].find(v => v.srcObject && !v.paused)"
+        webView.evaluateJavaScript(streaming) { [weak self] result, _ in
+            guard let self, result as? Bool == true,
+                  UIApplication.shared.applicationState == .background else { return }
+            self.keepAlive.start(for: Settings.backgroundKeepAlive) { [weak self] in
+                self?.webView.pauseAllMediaPlayback()
+            }
+        }
     }
 
     // MARK: - Chrome
@@ -235,6 +259,13 @@ final class BrowserViewController: UIViewController {
             self?.applySettingsAndReload()
         }
 
+        let keepAlive = UIMenu(title: "Keep game running in background", image: UIImage(systemName: "moon.zzz"),
+                               children: Settings.backgroundKeepAlivePresets.map { preset in
+            UIAction(title: preset.title, state: Settings.backgroundKeepAlive == preset.seconds ? .on : .off) { _ in
+                Settings.backgroundKeepAlive = preset.seconds
+            }
+        })
+
         let hud = UIAction(title: "Debug overlay (reloads)", state: Settings.debugHUD ? .on : .off) { [weak self] _ in
             Settings.debugHUD.toggle()
             self?.applySettingsAndReload()
@@ -249,7 +280,7 @@ final class BrowserViewController: UIViewController {
 
         let help = UIAction(title: "Release mouse: hold Esc, ⌘. or three-finger tap", attributes: .disabled) { _ in }
 
-        return [navigation, UIMenu(options: .displayInline, children: [sensitivity, invert, microphone, spoof, hud]), help]
+        return [navigation, UIMenu(options: .displayInline, children: [sensitivity, invert, microphone, keepAlive, spoof, hud]), help]
     }
 
     private func promptForURL() {

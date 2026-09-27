@@ -94,8 +94,21 @@ open PointerLocker.xcodeproj
    visible, a toast explains why.
 
 The **⋯ button** in the bottom-left corner has Back, Reload, Home, Open URL,
-mouse sensitivity, invert vertical, microphone access, the "Pretend to be a
-Mac" toggle, and the debug overlay. It hides while the pointer is locked.
+mouse sensitivity, invert vertical, microphone access, how long a game keeps
+running in the background, the "Pretend to be a Mac" toggle, and the debug
+overlay. It hides while the pointer is locked.
+
+**Switching apps mid-game.** iPadOS suspends an app within seconds of leaving
+it, which drops the stream and ends the session. While a stream is playing,
+PointerLocker keeps itself running in the background for 5 minutes by default
+(⋯ ▸ Keep game running in background: Off / 1 / 5 / 15 minutes). It does this
+by playing silence, since WebKit pauses a quiet stream in the background. When
+the time is up it pauses the stream so the system can suspend the app.
+
+**Stream resolution.** On iPad, GeForce NOW defaults to 4:3 sizes such as
+1112×834. Some games then fail to find a free server and report "at capacity"
+or "not available". Set GeForce NOW ▸ Settings ▸ Gameplay ▸ Streaming quality ▸
+Custom ▸ Resolution to 1920×1080. The setting is saved with your account.
 
 The **MouseLockPrototype** scheme is milestone 1 from the brief. It's a bare
 GCMouse delta viewer. Run it first to confirm that your mouse gives smooth,
