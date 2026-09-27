@@ -352,7 +352,8 @@
   // ---------------------------------------------------------------------
   // Synthetic input
   // ---------------------------------------------------------------------
-  const BUTTON_BITS = [1, 4, 2]; // button index -> buttons bit (0=L,1=M,2=R)
+  // button index -> buttons bit (0=L, 1=M, 2=R, 3=back, 4=forward)
+  const BUTTON_BITS = [1, 4, 2, 8, 16];
 
   const withMovement = (event, dx, dy) => {
     Object.defineProperty(event, "movementX", { value: dx });

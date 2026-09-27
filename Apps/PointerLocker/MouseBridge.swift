@@ -79,6 +79,12 @@ final class MouseBridge {
         input.rightButton?.pressedChangedHandler = { [weak self] _, _, pressed in
             MainActor.assumeIsolated { self?.button(2, pressed) }
         }
+        // Side buttons (back, forward) are DOM buttons 3 and 4.
+        for (offset, aux) in (input.auxiliaryButtons ?? []).prefix(2).enumerated() {
+            aux.pressedChangedHandler = { [weak self] _, _, pressed in
+                MainActor.assumeIsolated { self?.button(3 + offset, pressed) }
+            }
+        }
         input.scroll.valueChangedHandler = { [weak self] _, x, y in
             MainActor.assumeIsolated { self?.scrolled(x: x, y: y) }
         }
