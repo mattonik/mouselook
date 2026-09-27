@@ -28,6 +28,10 @@ targets:
       base:
         # Change to something unique to you (free Apple IDs need a unique ID).
         PRODUCT_BUNDLE_IDENTIFIER: sk.icebear.pointerlocker
+        # Debug builds on a device can reach tools/debug-bridge.py on a Mac:
+        #   xcodebuild ... DEBUG_BRIDGE_URL=http://<mac>.local:8766 DEBUG_BRIDGE_TOKEN=<secret>
+        DEBUG_BRIDGE_URL: ""
+        DEBUG_BRIDGE_TOKEN: ""
     info:
       path: Apps/PointerLocker/Info.plist
       properties:
@@ -47,6 +51,15 @@ targets:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationPortraitUpsideDown
         NSMicrophoneUsageDescription: Websites such as GeForce NOW can use the microphone for in-game voice chat.
+        # Keeps a stream alive for a while in the background (⋯ ▸ Keep game
+        # running in background); the app pauses media when that time is up.
+        UIBackgroundModes: [audio]
+        # Only used by Debug builds (DebugBridge) to reach a developer Mac.
+        PLDebugBridgeURL: $(DEBUG_BRIDGE_URL)
+        PLDebugBridgeToken: $(DEBUG_BRIDGE_TOKEN)
+        NSLocalNetworkUsageDescription: Debug builds connect to a developer Mac on your network for testing.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
     scheme: {}
 
   MouseLockPrototype:

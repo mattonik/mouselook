@@ -49,6 +49,17 @@ enum Settings {
         set { defaults.set(newValue.rawValue, forKey: "microphone") }
     }
 
+    /// How long a stream keeps running after the app goes to the background
+    /// (e.g. to answer a message), in seconds; 0 pauses it right away.
+    static var backgroundKeepAlive: TimeInterval {
+        get { defaults.object(forKey: "backgroundKeepAlive") as? TimeInterval ?? 300 }
+        set { defaults.set(newValue, forKey: "backgroundKeepAlive") }
+    }
+
+    static let backgroundKeepAlivePresets: [(title: String, seconds: TimeInterval)] = [
+        ("Off", 0), ("1 minute", 60), ("5 minutes", 300), ("15 minutes", 900),
+    ]
+
     /// Show the debug overlay (lock state, input, stream stats).
     static var debugHUD: Bool {
         get { defaults.bool(forKey: "debugHUD") }
