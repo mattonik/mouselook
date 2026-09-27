@@ -15,15 +15,30 @@ final class BackgroundKeepAlive {
     private var engine: AVAudioEngine?
     private var timer: Timer?
 
-    /// Start keeping alive for `duration` seconds; `onExpire` runs if the app
-    /// is still in the background when the time is up.
+    /// Keep alive for `duration` seconds from now; `onExpire` runs if the app
+    /// is still in the background when the time is up. Calling it again while
+    /// running only resets the time limit.
     func start(for duration: TimeInterval, onExpire: @escaping () -> Void) {
-        stop()
+        timer?.invalidate()
+        timer = nil
         guard duration > 0 else {
             log.info("Keep-alive off: pausing media now")
+            stop(releaseAudioSession: true)
             return onExpire()
         }
+        if engine == nil { startSilence() }
 
+        log.info("Keep-alive for \(duration, format: .fixed(precision: 0)) s")
+        timer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.log.info("Keep-alive expired")
+                self?.stop(releaseAudioSession: true)
+                onExpire()
+            }
+        }
+    }
+
+    private func startSilence() {
         let session = AVAudioSession.sharedInstance()
         if session.category != .playAndRecord {
             try? session.setCategory(.playback, options: [.mixWithOthers])
@@ -44,18 +59,9 @@ final class BackgroundKeepAlive {
         do {
             try engine.start()
             self.engine = engine
-            log.info("Keep-alive started for \(duration, format: .fixed(precision: 0)) s")
         } catch {
             // Without audio iPadOS suspends us shortly anyway; nothing else to do.
             log.error("Keep-alive audio failed to start: \(error.localizedDescription)")
-        }
-
-        timer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.log.info("Keep-alive expired: pausing media")
-                self?.stop(releaseAudioSession: true)
-                onExpire()
-            }
         }
     }
 

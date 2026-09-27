@@ -99,11 +99,18 @@ running in the background, the "Pretend to be a Mac" toggle, and the debug
 overlay. It hides while the pointer is locked.
 
 **Switching apps mid-game.** iPadOS suspends an app within seconds of leaving
-it, which drops the stream and ends the session. While a stream is playing,
-PointerLocker keeps itself running in the background for 5 minutes by default
-(⋯ ▸ Keep game running in background: Off / 1 / 5 / 15 minutes). It does this
-by playing silence, since WebKit pauses a quiet stream in the background. When
-the time is up it pauses the stream so the system can suspend the app.
+it, which drops the stream and ends the session. PointerLocker keeps itself
+running in the background during a session. While you wait in the queue or the
+game loads, it keeps running until the game starts, for up to 30 minutes. While
+a stream plays, it keeps running for 5 minutes by default (⋯ ▸ Keep game running
+in background: Off / 1 / 5 / 15 minutes). It does this by playing silence,
+since WebKit pauses a quiet stream in the background. When the time is up it
+pauses the stream so the system can suspend the app. GeForce NOW still needs a
+tap on Resume when you come back.
+
+**Volume won't go to zero?** If you allowed the microphone, WebKit uses the
+voice-call audio mode, in which iPadOS keeps a minimum volume. Set ⋯ ▸
+Microphone ▸ Don't Allow if you don't need voice chat.
 
 **Stream resolution.** On iPad, GeForce NOW defaults to 4:3 sizes such as
 1112×834. Some games then fail to find a free server and report "at capacity"
