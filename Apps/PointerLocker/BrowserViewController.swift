@@ -1,4 +1,5 @@
 import GameController
+import os
 import UIKit
 import WebKit
 
@@ -21,6 +22,7 @@ final class BrowserViewController: UIViewController {
     private var observers: [NSObjectProtocol] = []
     private var hudTimer: Timer?
     private let keepAlive = BackgroundKeepAlive()
+    private var streamWatch: Timer?
     #if DEBUG
     private var debugBridge: DebugBridge?
     #endif
@@ -33,6 +35,7 @@ final class BrowserViewController: UIViewController {
     deinit {
         observers.forEach { NotificationCenter.default.removeObserver($0) }
         hudTimer?.invalidate()
+        streamWatch?.invalidate()
     }
 
     override func viewDidLoad() {
@@ -189,25 +192,87 @@ final class BrowserViewController: UIViewController {
             self?.didEnterBackground()
         })
         observers.append(center.addObserver(forName: UIScene.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.stopWatchingStream()
             self?.keepAlive.stop()
         })
     }
 
     // MARK: - Background
 
-    /// Keep the stream's session alive for the chosen time after an app
-    /// switch (see BackgroundKeepAlive), then pause all media so the system
-    /// can suspend the app as usual. "Off" pauses right away. Only while a
-    /// stream is playing, so browsing the library doesn't keep the app awake.
+    private enum StreamPhase: Int {
+        case none = 0     // library, sign-in, …
+        case starting = 1 // in the queue or loading the game
+        case playing = 2  // a stream is playing
+    }
+
+    /// GeForce NOW adds its stream element (#remote-video) when a session
+    /// starts (queue, loading) and plays a MediaStream in it once the game
+    /// runs; the library and game pages have none.
+    private static let streamPhaseScript = """
+        [...document.querySelectorAll('video')].some(v => v.srcObject && !v.paused) ? 2
+            : document.getElementById('remote-video') ? 1 : 0
+        """
+
+    private static let log = Logger(subsystem: "sk.icebear.pointerlocker", category: "KeepAlive")
+
+    private func streamPhase(_ completion: @escaping (StreamPhase) -> Void) {
+        webView.evaluateJavaScript(Self.streamPhaseScript) { result, error in
+            if let error { Self.log.error("Stream phase check failed: \(error.localizedDescription)") }
+            completion(StreamPhase(rawValue: result as? Int ?? 0) ?? .none)
+        }
+    }
+
+    /// Keep the session alive after an app switch (see BackgroundKeepAlive):
+    /// while queued or loading until the game starts (up to 30 minutes), and
+    /// while streaming for the chosen time, then pause all media so the
+    /// system can suspend the app as usual. Nothing outside a session.
     private func didEnterBackground() {
-        let streaming = "!![...document.querySelectorAll('video')].find(v => v.srcObject && !v.paused)"
-        webView.evaluateJavaScript(streaming) { [weak self] result, _ in
-            guard let self, result as? Bool == true,
-                  UIApplication.shared.applicationState == .background else { return }
-            self.keepAlive.start(for: Settings.backgroundKeepAlive) { [weak self] in
-                self?.webView.pauseAllMediaPlayback()
+        streamPhase { [weak self] phase in
+            let state = UIApplication.shared.applicationState
+            Self.log.info("Entered background: stream phase \(phase.rawValue), app state \(state.rawValue)")
+            guard let self, state == .background else { return }
+            switch phase {
+            case .none: return
+            case _ where Settings.backgroundKeepAlive == 0:
+                self.webView.pauseAllMediaPlayback()
+            case .playing: self.keepAliveWhilePlaying()
+            case .starting:
+                self.keepAlive.start(for: 30 * 60) { [weak self] in self?.stopWatchingStream() }
+                self.watchForStreamStart()
             }
         }
+    }
+
+    private func keepAliveWhilePlaying() {
+        stopWatchingStream()
+        keepAlive.start(for: Settings.backgroundKeepAlive) { [weak self] in
+            self?.webView.pauseAllMediaPlayback()
+        }
+    }
+
+    /// While queued or loading in the background, switch to the playing time
+    /// limit once the game starts, or stop if the session goes away.
+    private func watchForStreamStart() {
+        stopWatchingStream()
+        streamWatch = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.streamPhase { [weak self] phase in
+                    guard let self, UIApplication.shared.applicationState == .background else { return }
+                    switch phase {
+                    case .starting: break
+                    case .playing: self.keepAliveWhilePlaying()
+                    case .none:
+                        self.stopWatchingStream()
+                        self.keepAlive.stop(releaseAudioSession: true)
+                    }
+                }
+            }
+        }
+    }
+
+    private func stopWatchingStream() {
+        streamWatch?.invalidate()
+        streamWatch = nil
     }
 
     // MARK: - Chrome
