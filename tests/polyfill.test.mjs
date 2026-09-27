@@ -211,7 +211,7 @@ await test("requestFullscreen is emulated: element fills the viewport, events fi
     const events = [];
     document.addEventListener("fullscreenchange", () => events.push(["fullscreenchange", document.fullscreenElement?.id]));
     document.addEventListener("webkitfullscreenchange", () => events.push(["webkitfullscreenchange"]));
-    await el.requestFullscreen();
+    await el.requestFullscreen({ keyboardLock: "browser" }); // as GeForce NOW calls it
     await new Promise((res) => setTimeout(res, 20));
     const rect = el.getBoundingClientRect();
     return {

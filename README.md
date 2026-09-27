@@ -51,8 +51,10 @@ What the polyfill provides:
 - Web Workers also see the Mac `navigator.platform`. GeForce NOW checks it
   there, so they need it too.
 
-It also reports `navigator.maxTouchPoints = 0` and uses a Mac Safari user
-agent. Without that, GeForce NOW detects the iPad and serves its touch/PWA
+It also reports `navigator.maxTouchPoints = 0` and uses a Mac Safari 26.4 user
+agent. From 26.4 on, GeForce NOW treats Safari as fully supported: it skips
+the "partially supported on Safari" dialog and passes Esc straight to the
+game. Without that, GeForce NOW detects the iPad and serves its touch/PWA
 client, which never requests pointer lock. You can turn this off in the menu.
 
 ### Ways to release the lock
