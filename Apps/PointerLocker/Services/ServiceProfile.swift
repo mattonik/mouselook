@@ -47,9 +47,13 @@ struct ServiceProfile {
         all.first { $0.id == id }
     }
 
-    /// The profile the app runs with (Settings.serviceID), GeForce NOW by default.
+    typealias ID = String
+
+    /// The profile the app runs with. Falls back to GeForce NOW if nothing (or
+    /// something unknown) is stored, so early reads are safe; the launch
+    /// decision itself is LaunchRoute's.
     static var current: ServiceProfile {
-        all.first { $0.id == Settings.serviceID } ?? .geforceNow
+        Settings.serviceID.flatMap(profile(id:)) ?? .geforceNow
     }
 
     /// Any page that streams into a <video>; no disguise, no queue detection.
