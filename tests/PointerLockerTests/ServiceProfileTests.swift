@@ -67,6 +67,16 @@ final class ServiceProfileTests: XCTestCase {
         XCTAssertFalse(Settings.useServiceIdentity)
     }
 
+    func testSensitivityIsAlwaysAPreset() {
+        XCTAssertEqual(Settings.sensitivity, 1.0, "default")
+        Settings.sensitivity = 1.5
+        XCTAssertEqual(Settings.sensitivity, 1.5)
+        Settings.defaults.set(1.9, forKey: "sensitivity") // not a preset
+        XCTAssertEqual(Settings.sensitivity, 2.0)
+        Settings.defaults.set(10.0, forKey: "sensitivity")
+        XCTAssertEqual(Settings.sensitivity, 3.0)
+    }
+
     func testURLsTypedWithoutAScheme() {
         XCTAssertEqual(BrowserViewController.normalizedURL(" play.geforcenow.com ")?.absoluteString, "https://play.geforcenow.com")
         XCTAssertEqual(BrowserViewController.normalizedURL("http://x.test")?.absoluteString, "http://x.test")

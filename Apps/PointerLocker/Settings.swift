@@ -20,10 +20,15 @@ enum Settings {
         set { defaults.set(newValue, forKey: "homeURL.\(ServiceProfile.current.id)") }
     }
 
-    /// Multiplier applied to raw GCMouse deltas.
+    /// Multiplier applied to raw GCMouse deltas: always one of the presets,
+    /// so the Settings picker shows what's in effect.
     static var sensitivity: Double {
-        get { defaults.object(forKey: "sensitivity") as? Double ?? 1.0 }
+        get { nearestSensitivityPreset(to: defaults.object(forKey: "sensitivity") as? Double ?? 1.0) }
         set { defaults.set(newValue, forKey: "sensitivity") }
+    }
+
+    static func nearestSensitivityPreset(to value: Double) -> Double {
+        sensitivityPresets.min { abs($0 - value) < abs($1 - value) } ?? 1.0
     }
 
     /// GameController reports +Y as "up"; the DOM wants +Y as "down", so the
