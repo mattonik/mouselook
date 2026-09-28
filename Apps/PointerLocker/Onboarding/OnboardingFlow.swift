@@ -29,7 +29,7 @@ struct OnboardingFlow: View {
             Color(.systemBackground).ignoresSafeArea()
             switch step {
             case .welcome:
-                WelcomeStep { withAnimation { step = .chooser } }
+                WelcomeStep(services: ServiceProfile.selectable) { withAnimation { step = .chooser } }
                     .transition(.opacity)
             case .chooser:
                 ServiceChooserStep(services: ServiceProfile.selectable) { profile in

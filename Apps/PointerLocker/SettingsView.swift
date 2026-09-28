@@ -20,7 +20,7 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section("Service") {
-                    LabeledContent("Playing on", value: service.name)
+                    LabeledContent(service.category.settingsLabel, value: service.name)
                     if ServiceSwitch.isOffered() {
                         Button("Switch service…", action: onSwitchService)
                     }
@@ -32,17 +32,19 @@ struct SettingsView: View {
                     }
                     Toggle("Invert Y-axis", isOn: $invertY)
                 }
-                Section {
-                    Picker("Keep game running in background", selection: $keepAlive) {
-                        ForEach(Settings.backgroundKeepAlivePresets, id: \.seconds) { Text($0.title).tag($0.seconds) }
+                if service.category.hasGameSession {
+                    Section {
+                        Picker("Keep game running in background", selection: $keepAlive) {
+                            ForEach(Settings.backgroundKeepAlivePresets, id: \.seconds) { Text($0.title).tag($0.seconds) }
+                        }
+                        Picker("Microphone", selection: $microphone) {
+                            ForEach(MicrophoneAccess.allCases, id: \.self) { Text($0.title).tag($0) }
+                        }
+                    } header: {
+                        Text("Game session")
+                    } footer: {
+                        Text("Keeping the game running lets you switch apps briefly without losing your session.")
                     }
-                    Picker("Microphone", selection: $microphone) {
-                        ForEach(MicrophoneAccess.allCases, id: \.self) { Text($0.title).tag($0) }
-                    }
-                } header: {
-                    Text("Game session")
-                } footer: {
-                    Text("Keeping the game running lets you switch apps briefly without losing your session.")
                 }
                 Section {
                     Toggle("Use \(service.name) browser identity", isOn: $useIdentity)
@@ -51,7 +53,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Advanced")
                 } footer: {
-                    Text("Browser identity makes the service see a desktop browser, which mouse play needs. Changes here reload the page.")
+                    Text("Browser identity makes the service see a desktop browser, which the mouse features need. Changes here reload the page.")
                 }
             }
             .navigationTitle("Settings")
