@@ -159,8 +159,42 @@ the native side uses:
 npm install && npm test
 ```
 
-CI (`.github/workflows/build.yml`) runs those tests. It also builds both iOS
-targets for the Simulator on a macOS runner.
+The native logic has XCTest unit tests: mouse batching, service profiles and
+page recovery.
+
+```sh
+xcodegen && xcodebuild test -project PointerLocker.xcodeproj -scheme PointerLocker \
+  -destination 'platform=iOS Simulator,name=iPad (A16)'
+```
+
+CI (`.github/workflows/build.yml`) runs both test suites. It also builds both
+iOS targets for the Simulator on a macOS runner.
+
+## Code layout
+
+| Piece | What it does |
+|---|---|
+| `Services/ServiceProfile.swift` | What's specific to one streaming service: home page, the browser identity the pages see, and how to tell that a session is running. |
+| `Services/GeForceNowProfile.swift` | The GeForce NOW profile and why it looks the way it does. Add another service as another file like this one. |
+| `Resources/pointerlock-polyfill.js` | Pointer Lock and Fullscreen APIs in the page. It applies the profile's identity, including inside Web Workers, and turns native input into DOM events. |
+| `MouseBridge.swift` | Raw GCMouse input to the page, one batch per frame, never more than one in flight. |
+| `BrowserViewController*.swift` | The web view and lock state (+Menu, +WebUI for popups, dialogs and permissions). |
+| `BackgroundSessionKeeper.swift`, `BackgroundKeepAlive.swift` | Keeping a session alive across app switches. |
+| `PageRecovery.swift`, `StatusOverlayView.swift` | Crashes, failed loads and going offline. |
+| `DebugHUDFeeder.swift`, `Resources/debug-hud.js`, `DebugBridge.swift` | The debug overlay, and the Mac-side JavaScript console (Debug builds only). |
+
+### When things go wrong
+
+- **The page process crashes** (for example when memory runs low): the app
+  reloads the page. After 3 crashes within a minute it stops and offers a
+  Reload button, so it can't get stuck in a loop.
+- **A page fails to load**: the app shows why instead of a blank page. When
+  there is no connection, it loads the page again once the connection is back.
+- **Stuck input**: releasing the mouse releases any held mouse buttons. So
+  does disconnecting the mouse. Keys held when the app loses focus get their
+  key-up.
+- **The page stalls**: mouse input waits for the page instead of piling up,
+  so a hiccup doesn't end in a burst of stale movement.
 
 ## Known risks and what to try
 
