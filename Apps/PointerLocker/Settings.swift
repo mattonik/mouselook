@@ -6,17 +6,18 @@ enum Settings {
 
     static var defaults = UserDefaults.standard
 
-    /// The streaming service the app is set up for (ServiceProfile.id).
-    static var serviceID: String {
-        get { defaults.string(forKey: "serviceID") ?? ServiceProfile.geforceNow.id }
+    /// The streaming service the user chose (ServiceProfile.id); nil until
+    /// they finish onboarding.
+    static var serviceID: String? {
+        get { defaults.string(forKey: "serviceID") }
         set { defaults.set(newValue, forKey: "serviceID") }
     }
 
     /// Start page: the service's own unless changed ("Open and set as Home"),
     /// remembered per service.
     static var homeURL: URL {
-        get { defaults.url(forKey: "homeURL.\(serviceID)") ?? ServiceProfile.current.homeURL }
-        set { defaults.set(newValue, forKey: "homeURL.\(serviceID)") }
+        get { defaults.url(forKey: "homeURL.\(ServiceProfile.current.id)") ?? ServiceProfile.current.homeURL }
+        set { defaults.set(newValue, forKey: "homeURL.\(ServiceProfile.current.id)") }
     }
 
     /// Multiplier applied to raw GCMouse deltas.
