@@ -172,7 +172,7 @@ final class BrowserViewController: UIViewController {
             // UIKit only honours pointer lock for a full-screen, frontmost scene.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) { [weak self] in
                 guard let self, self.pageWantsLock, !self.isSystemPointerLocked else { return }
-                self.toast.show("The pointer isn't locked, so it can leave the game. Make the app full screen to lock it.")
+                self.toast.show("The pointer isn't locked, so it can leave the page. Make the app full screen to lock it.")
             }
         }
     }

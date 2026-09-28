@@ -1,9 +1,13 @@
 # Mouselook
 
 An iPad browser, built on the system WKWebView, that gives web pages a working
-**Pointer Lock API**. The target is GeForce NOW's web client
-(`play.geforcenow.com`), which needs pointer lock for mouse-look in games.
-Safari and WebKit on iPadOS don't implement pointer lock.
+**Pointer Lock API**, so a mouse works the way it does on a computer. Safari and
+WebKit on iPadOS don't implement pointer lock. Two kinds of service use it:
+
+- **Play:** cloud games such as GeForce NOW (`play.geforcenow.com`), for
+  mouse-look: aiming and looking around.
+- **Create:** design tools such as Figma, for dragging number fields and
+  panning without the pointer stopping at the screen edge.
 
 The app is for personal use. You sideload it with Xcode. Inside the code it's
 still called PointerLocker (Xcode project, target and bundle ID `sk.icebear.pointerlocker`),

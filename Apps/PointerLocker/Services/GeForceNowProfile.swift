@@ -49,6 +49,7 @@ extension ServiceProfile {
             lockReady: "The mouse can lock to the game.",
             release: "Hold Esc, press ⌘ + ., or tap the screen with three fingers. To send Esc to the game, press ⌘ + Delete.",
             start: "Start playing"
-        )
+        ),
+        category: .play
     )
 }
