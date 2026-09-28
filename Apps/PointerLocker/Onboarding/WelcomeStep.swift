@@ -13,7 +13,7 @@ struct WelcomeStep: View {
                         .font(.system(size: 64, weight: .light))
                         .foregroundStyle(.tint)
                         .accessibilityHidden(true)
-                    Text("PointerLocker")
+                    Text("Mouselook")
                         .font(.largeTitle.bold())
                     Text("Play cloud games with a mouse and keyboard. The mouse locks to the game, the same as on a PC.")
                         .font(.title3)

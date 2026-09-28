@@ -28,6 +28,8 @@ targets:
       base:
         # Change to something unique to you (free Apple IDs need a unique ID).
         PRODUCT_BUNDLE_IDENTIFIER: sk.icebear.pointerlocker
+        # Apps/PointerLocker/Assets.xcassets; rendered by tools/render-icon.sh.
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         # Debug builds on a device can reach tools/debug-bridge.py on a Mac:
         #   xcodebuild ... DEBUG_BRIDGE_URL=http://<mac>.local:8766 DEBUG_BRIDGE_TOKEN=<secret>
         DEBUG_BRIDGE_URL: ""
@@ -35,7 +37,7 @@ targets:
     info:
       path: Apps/PointerLocker/Info.plist
       properties:
-        CFBundleDisplayName: PointerLocker
+        CFBundleDisplayName: Mouselook
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
