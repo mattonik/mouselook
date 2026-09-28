@@ -1,4 +1,5 @@
 import Network
+import SwiftUI
 import UIKit
 import WebKit
 
@@ -29,6 +30,10 @@ final class BrowserViewController: UIViewController {
     #if DEBUG
     private var debugBridge: DebugBridge?
     #endif
+
+    /// Browser identity and overlay settings when the Settings sheet opened;
+    /// nil while it's closed.
+    private var settingsBefore: (identity: Bool, hud: Bool)?
 
     private var pageWantsLock = false
     private var systemLocked = false
@@ -96,6 +101,43 @@ final class BrowserViewController: UIViewController {
         WebViewFactory.applyIdentity(to: webView)
         hudFeeder.update()
         webView.reload()
+    }
+
+    /// ⋯ ▸ Settings…
+    func showSettings() {
+        settingsBefore = (identity: Settings.useServiceIdentity, hud: Settings.debugHUD)
+        let view = SettingsView(
+            service: .current,
+            onSwitchService: { [weak self] in self?.closeSettings { self?.root?.switchService() } },
+            onShowSetupGuide: { [weak self] in self?.closeSettings { self?.root?.showSetupGuide() } },
+            onClose: { [weak self] in self?.closeSettings() }
+        )
+        let controller = UIHostingController(rootView: view)
+        controller.modalPresentationStyle = .formSheet
+        controller.overrideUserInterfaceStyle = .dark // the sheet's chrome too, not just the SwiftUI content
+        controller.presentationController?.delegate = self
+        forceUnlock()
+        present(controller, animated: true)
+    }
+
+    /// Every way out of Settings applies the changes, then continues.
+    private func closeSettings(then next: (() -> Void)? = nil) {
+        dismiss(animated: true) { [weak self] in
+            self?.applySettingsIfOpen()
+            next?()
+        }
+    }
+
+    /// Sensitivity and inversion apply directly; identity and overlay changes
+    /// need a reload.
+    fileprivate func applySettingsIfOpen() {
+        guard let before = settingsBefore else { return }
+        settingsBefore = nil
+        bridge.sensitivity = Float(Settings.sensitivity)
+        bridge.invertY = Settings.invertY
+        if before.identity != Settings.useServiceIdentity || before.hud != Settings.debugHUD {
+            applySettingsAndReload()
+        }
     }
 
     /// Which phase the page's session is in (none / queued-loading / playing).
@@ -309,5 +351,11 @@ extension BrowserViewController: UIGestureRecognizerDelegate {
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
                            shouldRecognizeSimultaneouslyWith other: UIGestureRecognizer) -> Bool {
         true
+    }
+}
+
+extension BrowserViewController: UIAdaptivePresentationControllerDelegate {
+    func presentationControllerDidDismiss(_ presentationController: UIPresentationController) {
+        applySettingsIfOpen()
     }
 }

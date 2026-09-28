@@ -21,6 +21,8 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // Must be the root view controller: UIKit asks the root for
         // prefersPointerLocked, and RootViewController forwards to the browser.
         window.rootViewController = RootViewController()
+        // Dark throughout: onboarding, menus, sheets and alerts match the game pages.
+        window.overrideUserInterfaceStyle = .dark
         window.makeKeyAndVisible()
         self.window = window
     }

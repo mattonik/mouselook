@@ -31,50 +31,10 @@ extension BrowserViewController {
             },
             UIAction(title: "Open URL…", image: UIImage(systemName: "link")) { [weak self] _ in self?.promptForURL() },
         ])
-
-        let sensitivity = UIMenu(title: "Mouse sensitivity", image: UIImage(systemName: "cursorarrow.motionlines"),
-                                 children: Settings.sensitivityPresets.map { value in
-            UIAction(title: String(format: "%g×", value), state: Settings.sensitivity == value ? .on : .off) { [weak self] _ in
-                Settings.sensitivity = value
-                self?.bridge.sensitivity = Float(value)
-            }
-        })
-
-        let invert = UIAction(title: "Invert vertical", state: Settings.invertY ? .on : .off) { [weak self] _ in
-            Settings.invertY.toggle()
-            self?.bridge.invertY = Settings.invertY
+        let settings = UIAction(title: "Settings…", image: UIImage(systemName: "gearshape")) { [weak self] _ in
+            self?.showSettings()
         }
-
-        let microphone = UIMenu(title: "Microphone", image: UIImage(systemName: "mic"),
-                                children: MicrophoneAccess.allCases.map { access in
-            UIAction(title: access.title, state: Settings.microphone == access ? .on : .off) { _ in
-                Settings.microphone = access
-            }
-        })
-
-        let keepAlive = UIMenu(title: "Keep game running in background", image: UIImage(systemName: "moon.zzz"),
-                               children: Settings.backgroundKeepAlivePresets.map { preset in
-            UIAction(title: preset.title, state: Settings.backgroundKeepAlive == preset.seconds ? .on : .off) { _ in
-                Settings.backgroundKeepAlive = preset.seconds
-            }
-        })
-
-        let profile = ServiceProfile.current
-        let identity = UIAction(title: "Use \(profile.name) browser identity (reloads)",
-                                attributes: profile.identity == .webKitDefault ? .disabled : [],
-                                state: Settings.useServiceIdentity ? .on : .off) { [weak self] _ in
-            Settings.useServiceIdentity.toggle()
-            self?.applySettingsAndReload()
-        }
-
-        let hud = UIAction(title: "Debug overlay (reloads)", state: Settings.debugHUD ? .on : .off) { [weak self] _ in
-            Settings.debugHUD.toggle()
-            self?.applySettingsAndReload()
-        }
-
-        let help = UIAction(title: "Release mouse: hold Esc, ⌘. or three-finger tap", attributes: .disabled) { _ in }
-
-        return [navigation, UIMenu(options: .displayInline, children: [sensitivity, invert, microphone, keepAlive, identity, hud]), help]
+        return [navigation, settings]
     }
 
     private func promptForURL() {
