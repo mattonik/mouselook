@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 180 180">
+  <!-- Mouselook app icon: the pointer held in a ring. Full bleed; iPadOS rounds the corners. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b2640"/>
+      <stop offset="1" stop-color="#0a0f1c"/>
+    </linearGradient>
+    <linearGradient id="ring" gradientUnits="userSpaceOnUse" x1="40" y1="40" x2="140" y2="140">
+      <stop offset="0" stop-color="#5ee1ff"/>
+      <stop offset="1" stop-color="#2f7bff"/>
+    </linearGradient>
+  </defs>
+  <rect width="180" height="180" fill="url(#bg)"/>
+  <circle cx="90" cy="90" r="52" fill="none" stroke="url(#ring)" stroke-width="7" stroke-dasharray="58 23.7" transform="rotate(-45 90 90)"/>
+  <path d="M78 62 L78 118 L92 104 L102 126 L112 121 L102 100 L121 100 Z" fill="#e8eefc" stroke="#0a0f1c" stroke-width="3" stroke-linejoin="round"/>
+</svg>

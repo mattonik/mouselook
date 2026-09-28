@@ -1,0 +1,98 @@
+# XcodeGen spec — run `xcodegen` to produce PointerLocker.xcodeproj.
+name: PointerLocker
+options:
+  bundleIdPrefix: sk.icebear
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    TARGETED_DEVICE_FAMILY: "2"   # iPad only
+    CODE_SIGN_STYLE: Automatic
+    # Change to your own team to build elsewhere.
+    DEVELOPMENT_TEAM: AR9ZHABG8Y  # IceBear s.r.o.
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+targets:
+  PointerLocker:
+    type: application
+    platform: iOS
+    sources:
+      - path: Apps/PointerLocker
+        excludes: ["Resources/**"]
+      - path: Apps/PointerLocker/Resources
+        buildPhase: resources
+    settings:
+      base:
+        # Change to something unique to you (free Apple IDs need a unique ID).
+        PRODUCT_BUNDLE_IDENTIFIER: sk.icebear.pointerlocker
+        # Apps/PointerLocker/Assets.xcassets; rendered by tools/render-icon.sh.
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # Debug builds on a device can reach tools/debug-bridge.py on a Mac:
+        #   xcodebuild ... DEBUG_BRIDGE_URL=http://<mac>.local:8766 DEBUG_BRIDGE_TOKEN=<secret>
+        DEBUG_BRIDGE_URL: ""
+        DEBUG_BRIDGE_TOKEN: ""
+    info:
+      path: Apps/PointerLocker/Info.plist
+      properties:
+        CFBundleDisplayName: Mouselook
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        # Deliver trackpad/mouse as pointer events, required for pointer lock.
+        UIApplicationSupportsIndirectInputEvents: true
+        # Pointer lock is only granted to a full-screen scene; opt out of
+        # Split View / Slide Over (ignored by Stage Manager and newer windowing).
+        UIRequiresFullScreen: true
+        UIStatusBarHidden: true
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+        NSMicrophoneUsageDescription: For voice chat in games. The app asks before a site can use it.
+        # Keeps a stream alive for a while in the background (⋯ ▸ Settings… ▸
+        # Keep game running in background); the app pauses media when that time is up.
+        UIBackgroundModes: [audio]
+        # Only used by Debug builds (DebugBridge) to reach a developer Mac.
+        PLDebugBridgeURL: $(DEBUG_BRIDGE_URL)
+        PLDebugBridgeToken: $(DEBUG_BRIDGE_TOKEN)
+        NSLocalNetworkUsageDescription: Debug builds connect to a developer Mac on your network for testing.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+    scheme:
+      testTargets: [PointerLockerTests]
+
+  PointerLockerTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: tests/PointerLockerTests
+    dependencies:
+      - target: PointerLocker
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: sk.icebear.pointerlockertests
+        GENERATE_INFOPLIST_FILE: YES
+
+  MouseLockPrototype:
+    type: application
+    platform: iOS
+    sources:
+      - path: Apps/MouseLockPrototype
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: sk.icebear.mouselockprototype
+    info:
+      path: Apps/MouseLockPrototype/Info.plist
+      properties:
+        UILaunchScreen: {}
+        UIApplicationSupportsIndirectInputEvents: true
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+    scheme: {}
