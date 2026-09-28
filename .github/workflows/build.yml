@@ -23,6 +23,13 @@ jobs:
         scheme: [PointerLocker, MouseLockPrototype]
     steps:
       - uses: actions/checkout@v4
+      - name: Use the newest Xcode 26
+        # Xcode 16's iOS 18 simulator lacks libswiftWebKit.dylib, which the
+        # app links, so the test host crashed before any test ran.
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
       - run: brew install xcodegen
       - run: xcodegen generate
       - name: Build for iOS Simulator (unsigned)
@@ -37,11 +44,25 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+      - name: Use the newest Xcode 26
+        # Xcode 16's iOS 18 simulator lacks libswiftWebKit.dylib, which the
+        # app links, so the test host crashed before any test ran.
+        run: |
+          XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
       - run: brew install xcodegen
       - run: xcodegen generate
       - name: Unit tests on an iPad Simulator
         run: |
-          UDID=$(xcrun simctl list devices available -j | python3 -c "import json, sys; d = json.load(sys.stdin)['devices']; print(next(x['udid'] for r, l in d.items() if 'iOS' in r for x in l if x['name'].startswith('iPad')))")
+          # An iPad on the newest iOS runtime this Xcode has.
+          UDID=$(xcrun simctl list devices available -j | python3 -c "
+          import json, re, sys
+          devices = json.load(sys.stdin)['devices']
+          version = lambda runtime: [int(n) for n in re.findall(r'\d+', runtime.rsplit('iOS', 1)[-1])]
+          ipads = [(version(r), x['udid']) for r, l in devices.items() if 'iOS' in r for x in l if x['name'].startswith('iPad')]
+          print(max(ipads)[1])")
+          xcrun simctl list devices | grep "$UDID"
           xcodebuild test \
             -project PointerLocker.xcodeproj \
             -scheme PointerLocker \
