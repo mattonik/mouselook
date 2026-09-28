@@ -95,6 +95,8 @@ final class ReadinessMonitor {
         }
     }
 
+    var isRunning: Bool { hubToken != nil }
+
     func stop() {
         if let hubToken { hub.remove(hubToken) }
         hubToken = nil

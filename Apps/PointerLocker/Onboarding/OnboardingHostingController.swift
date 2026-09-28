@@ -3,7 +3,7 @@ import SwiftUI
 /// Hosts OnboardingFlow, runs the readiness checks while visible, and tells
 /// them the window and screen size (for the full-screen row).
 final class OnboardingHostingController: UIHostingController<OnboardingFlow> {
-    private let monitor: ReadinessMonitor
+    let monitor: ReadinessMonitor
 
     init(start: OnboardingFlow.Start, onFinish: @escaping (ServiceProfile) -> Void, onCancel: (() -> Void)?) {
         let monitor = ReadinessMonitor()
@@ -24,6 +24,13 @@ final class OnboardingHostingController: UIHostingController<OnboardingFlow> {
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         monitor.stop()
+    }
+
+    /// Removed as a child (the browser takes over after first launch): UIKit
+    /// doesn't always send viewDidDisappear for that, so stop here too.
+    override func willMove(toParent parent: UIViewController?) {
+        super.willMove(toParent: parent)
+        if parent == nil { monitor.stop() }
     }
 
     override func viewDidLayoutSubviews() {

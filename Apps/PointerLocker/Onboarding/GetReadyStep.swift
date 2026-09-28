@@ -14,13 +14,10 @@ struct GetReadyStep: View {
                     .padding(.top, 48)
                     .padding(.bottom, 12)
 
-                StatusRow(symbol: "computermouse", title: mouseTitle, detail: mouseDetail, ok: monitor.mouse != .notConnected,
+                StatusRow(symbol: "computermouse", copy: ReadinessCopy.mouse(monitor.mouse), ok: monitor.mouse != .notConnected,
                           pulsing: monitor.mouse == .moving && !reduceMotion)
-                    .accessibilityLabel("Mouse: \(mouseAccessibility)")
-                StatusRow(symbol: "keyboard", title: keyboardTitle, detail: keyboardDetail, ok: monitor.keyboard == .connected)
-                    .accessibilityLabel("Keyboard: \(keyboardTitle)")
-                StatusRow(symbol: "rectangle.inset.filled", title: displayTitle, detail: displayDetail, ok: monitor.display == .fullScreen)
-                    .accessibilityLabel("Display: \(displayTitle). \(displayDetail)")
+                StatusRow(symbol: "keyboard", copy: ReadinessCopy.keyboard(monitor.keyboard), ok: monitor.keyboard == .connected)
+                StatusRow(symbol: "rectangle.inset.filled", copy: ReadinessCopy.display(monitor.display), ok: monitor.display == .fullScreen)
 
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(profile.setupTips) { tip in
@@ -44,51 +41,21 @@ struct GetReadyStep: View {
                 .background(.bar)
         }
     }
-
-    private var mouseTitle: String {
-        switch monitor.mouse {
-        case .notConnected: "Connect a mouse or trackpad"
-        case .connected: "Mouse connected"
-        case .moving: "Mouse is working"
-        }
-    }
-    private var mouseDetail: String {
-        monitor.mouse == .notConnected
-            ? "Games need a mouse or trackpad to look around. Touch alone won't work."
-            : "Move it and watch the check mark. If it reacts, games can see the mouse too."
-    }
-    private var mouseAccessibility: String {
-        switch monitor.mouse {
-        case .notConnected: "not connected"
-        case .connected: "connected"
-        case .moving: "connected and working"
-        }
-    }
-    private var keyboardTitle: String { monitor.keyboard == .connected ? "Keyboard connected" : "Press any key to check the keyboard" }
-    private var keyboardDetail: String {
-        monitor.keyboard == .connected ? "Ready for WASD." : "Some keyboards only show up after a key press."
-    }
-    private var displayTitle: String { monitor.display == .fullScreen ? "Full screen" : "Switch to full screen" }
-    private var displayDetail: String {
-        monitor.display == .fullScreen
-            ? "The mouse can lock to the game."
-            : "To lock the mouse, the app needs the full screen. Maximize the window, or turn on Full Screen Apps in Settings ▸ Multitasking & Gestures."
-    }
 }
 
 private struct StatusRow: View {
     let symbol: String
-    let title: String
-    let detail: String
+    let copy: ReadinessCopy.Row
     let ok: Bool
     var pulsing = false
+    @ScaledMetric(relativeTo: .title2) private var iconWidth: CGFloat = 32
 
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
-            Image(systemName: symbol).font(.title2).frame(width: 32).accessibilityHidden(true)
+            Image(systemName: symbol).font(.title2).frame(width: iconWidth).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
-                Text(title).font(.headline)
-                Text(detail).foregroundStyle(.secondary)
+                Text(copy.title).font(.headline)
+                Text(copy.detail).foregroundStyle(.secondary)
             }
             Spacer()
             Image(systemName: ok ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
@@ -100,7 +67,8 @@ private struct StatusRow: View {
         }
         .padding(16)
         .background(Color(.secondarySystemBackground), in: .rect(cornerRadius: 10))
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(copy.accessibilityLabel)
     }
 }
 
@@ -108,10 +76,11 @@ private struct InfoRow: View {
     let symbol: String
     let title: String
     let detail: String
+    @ScaledMetric(relativeTo: .title2) private var iconWidth: CGFloat = 32
 
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
-            Image(systemName: symbol).font(.title2).frame(width: 32).foregroundStyle(.tint).accessibilityHidden(true)
+            Image(systemName: symbol).font(.title2).frame(width: iconWidth).foregroundStyle(.tint).accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 Text(title).font(.headline)
                 Text(detail).foregroundStyle(.secondary)

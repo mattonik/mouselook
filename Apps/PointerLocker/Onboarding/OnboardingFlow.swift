@@ -41,11 +41,16 @@ struct OnboardingFlow: View {
                     .transition(.opacity)
             }
         }
-        .overlay(alignment: .topTrailing) {
+        // A bar of its own, so scrolled content and large titles don't run
+        // under the button.
+        .safeAreaInset(edge: .top, spacing: 0) {
             if let onCancel {
                 Button("Cancel", action: onCancel)
-                    .padding(20)
                     .accessibilityHint("Closes without changing anything")
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .background(.bar)
             }
         }
         .preferredColorScheme(.dark)
