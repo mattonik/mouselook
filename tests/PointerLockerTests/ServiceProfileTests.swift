@@ -43,7 +43,8 @@ final class ServiceProfileTests: XCTestCase {
         XCTAssertEqual(ServiceProfile.generic.pageConfigScript(useIdentity: true), off)
     }
 
-    func testCurrentProfileDefaultsToGeForceNowAndFallsBackForUnknownIDs() {
+    func testCurrentProfileFallsBackToGeForceNowWhenNothingOrSomethingUnknownIsStored() {
+        XCTAssertNil(Settings.serviceID)
         XCTAssertEqual(ServiceProfile.current.id, "geforcenow")
         Settings.serviceID = "generic"
         XCTAssertEqual(ServiceProfile.current.id, "generic")
