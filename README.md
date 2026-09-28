@@ -138,6 +138,14 @@ look comes out inverted, toggle *Invert Y-axis*.
 
 ### Debugging
 
+**Service checks.** Mouselook watches for signs that a service changed how it
+treats this browser (GeForce NOW loading its iPad version, a game never asking
+for the mouse, Figma not locking while you scrub) and says so once per
+session. ⋯ ▸ Settings… ▸ Service checks shows the results; Copy diagnostics
+puts a report with the app, iPadOS and WebKit versions, the lock path and the
+last 200 events on the clipboard. Nothing leaves the iPad unless you paste it
+somewhere.
+
 Turn on **Debug overlay** in ⋯ ▸ Settings…. The page reloads, and a small panel in
 the bottom right shows:
 
