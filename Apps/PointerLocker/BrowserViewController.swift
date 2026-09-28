@@ -145,13 +145,16 @@ final class BrowserViewController: UIViewController {
         sessionKeeper.currentPhase(completion)
     }
 
-    /// Before being replaced (service switch): stop listening to the mouse
-    /// and feeding the overlay, and release the lock.
+    /// Before being replaced (service switch): stop listening to the mouse,
+    /// feeding the overlay and polling the debug bridge, and release the lock.
     func tearDown() {
         forceUnlock()
         bridge.invalidate()
         hudFeeder.stop()
         sessionKeeper.willEnterForeground() // stops any keep-alive
+        #if DEBUG
+        debugBridge?.stop()
+        #endif
     }
 
     // MARK: - Lock state
