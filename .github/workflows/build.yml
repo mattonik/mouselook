@@ -1,8 +1,17 @@
 name: Build
 
+# Only on merges to main (and on demand). Day-to-day testing happens on the
+# developer's Mac with tools/test.sh; macOS minutes count 10x against the
+# free Actions quota, so CI stays to one macOS job per merge.
 on:
   push:
-  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer merge makes an older, still-running check pointless.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   polyfill-tests:
@@ -16,31 +25,8 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm test
 
-  ios-build:
-    runs-on: macos-15
-    strategy:
-      matrix:
-        scheme: [PointerLocker, MouseLockPrototype]
-    steps:
-      - uses: actions/checkout@v5
-      - name: Use the newest Xcode 26
-        # Xcode 16's iOS 18 simulator lacks libswiftWebKit.dylib, which the
-        # app links, so the test host crashed before any test ran.
-        run: |
-          XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
-          sudo xcode-select -s "$XCODE"
-          xcodebuild -version
-      - run: brew install xcodegen
-      - run: xcodegen generate
-      - name: Build for iOS Simulator (unsigned)
-        run: |
-          xcodebuild build \
-            -project PointerLocker.xcodeproj \
-            -scheme ${{ matrix.scheme }} \
-            -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO
-
   ios-tests:
+    # Building for tests also builds the app, so this one job covers both.
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v5
@@ -53,7 +39,7 @@ jobs:
           xcodebuild -version
       - run: brew install xcodegen
       - run: xcodegen generate
-      - name: Unit tests on an iPad Simulator
+      - name: Build and unit-test on an iPad Simulator
         run: |
           # An iPad on the newest iOS runtime this Xcode has.
           UDID=$(xcrun simctl list devices available -j | python3 -c "

@@ -165,23 +165,25 @@ curl -s --data-binary 'return document.pointerLockElement?.id' localhost:8766/ev
 
 ### Tests
 
-The polyfill is tested in headless Chromium by driving the same batch protocol
-the native side uses:
+Run everything CI runs on your Mac before pushing:
 
 ```sh
-npm install && npm test
+npm install          # once
+tools/test.sh        # Swift unit tests on an iPad simulator + polyfill tests
+tools/test.sh swift  # or: js; extra arguments go to xcodebuild
 ```
 
-The native logic has XCTest unit tests: mouse batching, service profiles and
-page recovery.
+Builds are incremental (derived data in `build/`), so repeat runs take
+seconds. The Swift suite covers mouse batching, the mouse hub, service
+profiles and categories, onboarding logic, page recovery and settings; the
+polyfill is tested in headless Chromium by driving the same batch protocol
+the native side uses.
 
-```sh
-xcodegen && xcodebuild test -project PointerLocker.xcodeproj -scheme PointerLocker \
-  -destination 'platform=iOS Simulator,name=iPad (A16)'
-```
-
-CI (`.github/workflows/build.yml`) runs both test suites. It also builds both
-iOS targets for the Simulator on a macOS runner.
+CI (`.github/workflows/build.yml`) runs only on merges to `main` and on
+demand, as one Linux job for the polyfill and one macOS job that builds and
+tests the app. macOS minutes count ten times against GitHub's free Actions
+quota, so day-to-day testing stays local, and related work is combined into
+one branch before it's merged.
 
 ## Code layout
 
