@@ -50,6 +50,7 @@ extension ServiceProfile {
             release: "Hold Esc, press ⌘ + ., or tap the screen with three fingers. To send Esc to the game, press ⌘ + Delete.",
             start: "Start playing"
         ),
-        category: .play
+        category: .play,
+        healthChecks: [.desktopClient]
     )
 }
