@@ -32,8 +32,12 @@ enum WebViewFactory {
             assertionFailure("pointerlock-polyfill.js missing from bundle")
             return
         }
-        let config = ServiceProfile.current.pageConfigScript(useIdentity: Settings.useServiceIdentity)
-        controller.addUserScript(WKUserScript(source: config + polyfill, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+        let profile = ServiceProfile.current
+        var source = profile.pageConfigScript(useIdentity: Settings.useServiceIdentity) + polyfill
+        if let checks = resource("health-checks") {
+            source += "\n" + profile.healthConfigScript + checks
+        }
+        controller.addUserScript(WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true))
 
         if Settings.debugHUD, let hud = resource("debug-hud") {
             controller.addUserScript(WKUserScript(source: hud, injectionTime: .atDocumentStart, forMainFrameOnly: true))
