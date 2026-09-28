@@ -25,7 +25,6 @@ final class MouseBridge {
             pendingX = 0
             pendingY = 0
             queued.removeAll()
-            heldButtons.removeAll() // the page releases its own on unlock
             generation += 1         // ignore completions from before
             inFlightSince = nil
             displayLink?.isPaused = !isActive
@@ -48,7 +47,6 @@ final class MouseBridge {
     private var pendingX: Float = 0
     private var pendingY: Float = 0
     private var queued: [String] = []
-    private var heldButtons: [Int] = []
     private var inFlightSince: CFTimeInterval?
     private var generation = 0
     private var displayLink: CADisplayLink?
@@ -63,8 +61,8 @@ final class MouseBridge {
             case .moved(let dx, let dy): self.handleMove(dx: dx, dy: dy)
             case .button(let index, let pressed): self.handleButton(index, pressed: pressed)
             case .scrolled(let x, let y): self.handleScroll(x: x, y: y)
-            case .disconnected: self.mouseDisconnected()
-            case .connected: break
+            // The hub releases a lost mouse's buttons as .button events.
+            case .connected, .disconnected: break
             }
         }
 
@@ -85,16 +83,6 @@ final class MouseBridge {
         hubToken = nil
     }
 
-    /// A mouse went away (unplugged, out of battery): release whatever it was
-    /// holding, or the game keeps firing or aiming.
-    func mouseDisconnected() {
-        guard isActive, !heldButtons.isEmpty else { return }
-        queueMovement()
-        for index in heldButtons { queued.append("[\"b\",\(index),false]") }
-        heldButtons.removeAll()
-        flush()
-    }
-
     // MARK: - Event queueing
 
     func handleMove(dx: Float, dy: Float) {
@@ -107,11 +95,6 @@ final class MouseBridge {
     func handleButton(_ index: Int, pressed: Bool) {
         rawEventCount += 1
         guard isActive else { return }
-        if pressed {
-            if !heldButtons.contains(index) { heldButtons.append(index) }
-        } else {
-            heldButtons.removeAll { $0 == index }
-        }
         queueMovement()
         queued.append("[\"b\",\(index),\(pressed)]")
         flush()

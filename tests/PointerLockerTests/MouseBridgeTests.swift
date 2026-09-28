@@ -123,25 +123,4 @@ final class MouseBridgeTests: XCTestCase {
         bridge.flush()
         XCTAssertEqual(sent.count, 2)
     }
-
-    func testDisconnectingTheMouseReleasesHeldButtons() {
-        let bridge = makeBridge()
-        bridge.handleButton(0, pressed: true)
-        completeOldest()
-        bridge.handleButton(2, pressed: true)
-        completeOldest()
-
-        bridge.mouseDisconnected()
-        XCTAssertEqual(sent.last, #"["b",0,false],["b",2,false]"#)
-    }
-
-    func testUnlockingForgetsHeldButtons() {
-        let bridge = makeBridge()
-        bridge.handleButton(0, pressed: true)
-        completeOldest()
-        bridge.isActive = false // the page releases its own buttons on unlock
-        bridge.isActive = true
-        bridge.mouseDisconnected()
-        XCTAssertEqual(sent.count, 1)
-    }
 }
