@@ -60,6 +60,8 @@ struct ServiceProfile {
     let setupTips: [SetupTip]
     /// How the Get ready page talks about using it.
     let wording: ServiceWording
+    /// Which world it belongs to: Play (games) or Create (tools).
+    let category: ServiceCategory
 
     static let all: [ServiceProfile] = [.geforceNow, .figma, .generic]
 
@@ -89,7 +91,8 @@ struct ServiceProfile {
         tagline: "Any page that asks for pointer lock",
         artwork: ServiceArtwork(symbol: "globe", colors: (.systemGray, .darkGray)),
         setupTips: [],
-        wording: .neutral
+        wording: .neutral,
+        category: .play
     )
 
     /// The identity in effect, given the user's "use browser identity" choice.

@@ -14,10 +14,18 @@ struct ServiceChooserStep: View {
                         .foregroundStyle(.secondary)
                 }
                 .padding(.top, 48)
-                ForEach(services, id: \.id) { service in
-                    Button { onChoose(service) } label: { ServiceCard(service: service) }
-                        .buttonStyle(.plain)
-                        .accessibilityHint("Continues to setup for \(service.name)")
+                ForEach(ServiceCategory.groups(of: services), id: \.category) { group in
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(group.category.title)
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+                            .accessibilityAddTraits(.isHeader)
+                        ForEach(group.services, id: \.id) { service in
+                            Button { onChoose(service) } label: { ServiceCard(service: service) }
+                                .buttonStyle(.plain)
+                                .accessibilityHint("Continues to setup for \(service.name)")
+                        }
+                    }
                 }
             }
             .frame(maxWidth: 640, alignment: .leading)

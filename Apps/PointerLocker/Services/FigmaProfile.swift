@@ -42,6 +42,7 @@ extension ServiceProfile {
             lockReady: "The pointer can lock while you drag.",
             release: "Figma lets go when you release the button. If it stays locked, press ⌘ + . or tap the screen with three fingers.",
             start: "Open Figma"
-        )
+        ),
+        category: .create
     )
 }
