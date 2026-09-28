@@ -43,3 +43,12 @@ final class ServicePresentationTests: XCTestCase {
         XCTAssertEqual(Set(ServiceProfile.all.map(\.id)).count, ServiceProfile.all.count)
     }
 }
+
+final class WelcomeIconTests: XCTestCase {
+    func testWelcomeShowsTheAppIcon() {
+        // Rendered from design/icon/mouselook.svg with the app icon (tools/render-icon.sh).
+        let image = UIImage(named: "WelcomeIcon")
+        XCTAssertNotNil(image)
+        XCTAssertEqual(image?.size.width, image?.size.height)
+    }
+}
