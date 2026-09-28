@@ -1,11 +1,13 @@
-# PointerLocker
+# Mouselook
 
 An iPad browser, built on the system WKWebView, that gives web pages a working
 **Pointer Lock API**. The target is GeForce NOW's web client
 (`play.geforcenow.com`), which needs pointer lock for mouse-look in games.
 Safari and WebKit on iPadOS don't implement pointer lock.
 
-The app is for personal use. You sideload it with Xcode.
+The app is for personal use. You sideload it with Xcode. Inside the code it's
+still called PointerLocker (Xcode project, target and bundle ID `sk.icebear.pointerlocker`),
+so an installed copy keeps its settings and sign-ins.
 
 ## Approach
 
@@ -100,7 +102,7 @@ invert Y-axis, background keep-alive, microphone, browser identity and the debug
 overlay. It hides while the pointer is locked.
 
 **Switching apps mid-game.** iPadOS suspends an app within seconds of leaving
-it, which drops the stream and ends the session. PointerLocker keeps itself
+it, which drops the stream and ends the session. Mouselook keeps itself
 running in the background during a session. While you wait in the queue or the
 game loads, it keeps running until the game starts, for up to 30 minutes. While
 a stream plays, it keeps running for 5 minutes by default (⋯ ▸ Settings… ▸ Keep game
@@ -121,7 +123,7 @@ Custom ▸ Resolution to 1920×1080. The setting is saved with your account.
 The **MouseLockPrototype** scheme is milestone 1 from the brief. It's a bare
 GCMouse delta viewer. Run it first to confirm that your mouse gives smooth,
 unbounded deltas. Also check the **sign of dY** when you move the mouse up.
-PointerLocker assumes up is positive, as GameController reports it. If vertical
+Mouselook assumes up is positive, as GameController reports it. If vertical
 look comes out inverted, toggle *Invert Y-axis*.
 
 ### Debugging
@@ -139,7 +141,7 @@ iPadOS 26 the app can open as a resizable window. Maximize it, because only a
 full-screen app gets the lock.
 
 `isInspectable` is on. On a Mac, open Safari ▸ Develop ▸ *your iPad* ▸
-PointerLocker to get the Web Inspector for the page. There you can check
+Mouselook to get the Web Inspector for the page. There you can check
 `window.__pointerLocker.isLocked` and watch events arrive.
 
 In the simulator, Debug builds also run a small remote console
