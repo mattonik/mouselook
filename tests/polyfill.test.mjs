@@ -190,6 +190,39 @@ await test("forceUnlock and exitPointerLock", async () => {
   assert.equal(await page.evaluate(() => document.pointerLockElement), null);
 });
 
+await test("unlocking with buttons held releases them first", async () => {
+  const log = await page.evaluate(async () => {
+    document.getElementById("c").requestPointerLock();
+    window.__pointerLocker.batch([["b", 2, true], ["b", 0, true]]);
+    window.__log = [];
+    window.__pointerLocker.forceUnlock();
+    return window.__log.map((e) => [e.t, e.button, e.buttons]);
+  });
+  // Released as the last of a chord: right first (a move), then left (up).
+  assert.deepEqual(log.filter(([t]) => /up|move/.test(t)), [
+    ["pointermove", 2, 1], ["mouseup", 2, 1],
+    ["pointerup", 0, 0], ["mouseup", 0, 0],
+  ]);
+  assert.equal(log.some(([t]) => /click|contextmenu/.test(t)), false, "a forced release is not a click");
+});
+
+await test("held keys are released when the page loses focus", async () => {
+  await page.evaluate(() => {
+    window.__ups = [];
+    document.addEventListener("keyup", (e) => window.__ups.push([e.code, e.key, e.keyCode]));
+  });
+  await page.keyboard.down("KeyW"); // real (trusted) key presses
+  await page.keyboard.down("Shift");
+  const ups = await page.evaluate(() => {
+    window.dispatchEvent(new Event("blur"));
+    window.dispatchEvent(new Event("blur")); // nothing left to release
+    return window.__ups;
+  });
+  assert.deepEqual(ups, [["KeyW", "w", 87], ["ShiftLeft", "Shift", 16]]);
+  await page.keyboard.up("Shift");
+  await page.keyboard.up("KeyW");
+});
+
 await test("removing the locked element releases the lock", async () => {
   await page.evaluate(() => document.getElementById("c").requestPointerLock());
   await page.evaluate(() => document.getElementById("c").remove());

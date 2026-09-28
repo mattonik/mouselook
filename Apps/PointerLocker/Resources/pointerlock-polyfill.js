@@ -134,8 +134,15 @@
 
   const setLocked = (el) => {
     const previous = lockedElement;
+    // Release held buttons while the element still gets them, highest first,
+    // or the game keeps firing/aiming. Not a click: no click/auxclick.
+    if (!el && previous) {
+      for (let i = BUTTON_BITS.length - 1; i >= 0; i--) {
+        if (buttons & BUTTON_BITS[i]) button(i, false, { click: false });
+      }
+      buttons = 0;
+    }
     lockedElement = el;
-    if (!el && previous) buttons = 0;
     if (el !== previous) {
       post({ type: el ? "lock" : "unlock" });
       // Real browsers fire this as a task after the state change.
@@ -248,6 +255,31 @@
   new MutationObserver(() => {
     if (lockedElement && !lockedElement.isConnected) setLocked(null);
   }).observe(document, { childList: true, subtree: true });
+
+  // Keys held when the page loses focus (app switch, dialog, ⌘-Tab) never
+  // get their keyup, so the game would keep walking. Release them.
+  const heldKeys = new Map(); // code -> { key, code, keyCode }
+  window.addEventListener("keydown", (e) => {
+    if (e.isTrusted) heldKeys.set(e.code, { key: e.key, code: e.code, keyCode: e.keyCode });
+  }, true);
+  window.addEventListener("keyup", (e) => {
+    if (e.isTrusted) heldKeys.delete(e.code);
+  }, true);
+  const releaseKeys = () => {
+    if (!heldKeys.size) return;
+    const keys = [...heldKeys.values()];
+    heldKeys.clear();
+    const target = document.activeElement || document.body || document;
+    for (const { key, code, keyCode } of keys) {
+      const e = new KeyboardEvent("keyup", { key, code, bubbles: true, cancelable: true, composed: true });
+      for (const p of ["keyCode", "which"]) Object.defineProperty(e, p, { get: () => keyCode });
+      target.dispatchEvent(e);
+    }
+  };
+  window.addEventListener("blur", releaseKeys);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") releaseKeys();
+  });
 
   // Hold Escape to release the lock (same gesture GeForce NOW uses). A tap
   // on Escape still reaches the page so in-game menus keep working.
@@ -409,7 +441,7 @@
     fireMouse(target, "mousemove", { button: 0 }, dx, dy);
   };
 
-  const button = (index, down) => {
+  const button = (index, down, { click = true } = {}) => {
     const bit = BUTTON_BITS[index];
     if (bit === undefined) return;
     const target = lockedElement;
@@ -428,7 +460,7 @@
       fireMouse(target, down ? "mousedown" : "mouseup", { button: index });
     }
     if (down && index === 2) fireMouse(target, "contextmenu", { button: 2 });
-    if (!down) fireMouse(target, index === 0 ? "click" : "auxclick", { button: index });
+    if (!down && click) fireMouse(target, index === 0 ? "click" : "auxclick", { button: index });
   };
 
   const wheel = (dx, dy) => {
