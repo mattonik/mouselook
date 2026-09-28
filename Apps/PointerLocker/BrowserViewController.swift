@@ -34,6 +34,8 @@ final class BrowserViewController: UIViewController {
     /// Browser identity and overlay settings when the Settings sheet opened;
     /// nil while it's closed.
     private var settingsBefore: (identity: Bool, hud: Bool)?
+    /// Which pointer lock held the last lock: "native" (WebKit's) or "polyfill".
+    private(set) var lastLockMode: String?
 
     private var pageWantsLock = false
     private var systemLocked = false
@@ -159,10 +161,12 @@ final class BrowserViewController: UIViewController {
 
     // MARK: - Lock state
 
-    private func setPageLock(_ locked: Bool) {
+    private func setPageLock(_ locked: Bool, native: Bool = false) {
         guard locked != pageWantsLock else { return }
         pageWantsLock = locked
-        bridge.isActive = locked
+        // WebKit's own lock delivers mouse movement itself.
+        bridge.isActive = locked && !native
+        if locked { lastLockMode = native ? "native" : "polyfill" }
         let host = parent ?? self // the root asks this controller via childViewControllerForPointerLock
         host.setNeedsUpdateOfPrefersPointerLocked()
         host.setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
@@ -303,9 +307,11 @@ extension BrowserViewController: WKScriptMessageHandler {
               let body = message.body as? [String: Any],
               let type = body["type"] as? String
         else { return }
+        if let lock = LockMessage(body) {
+            setPageLock(lock.locked, native: lock.native)
+            return
+        }
         switch type {
-        case "lock": setPageLock(true)
-        case "unlock": setPageLock(false)
         default: break
         }
     }
