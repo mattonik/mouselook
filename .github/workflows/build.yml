@@ -32,3 +32,18 @@ jobs:
             -scheme ${{ matrix.scheme }} \
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO
+
+  ios-tests:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install xcodegen
+      - run: xcodegen generate
+      - name: Unit tests on an iPad Simulator
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c "import json, sys; d = json.load(sys.stdin)['devices']; print(next(x['udid'] for r, l in d.items() if 'iOS' in r for x in l if x['name'].startswith('iPad')))")
+          xcodebuild test \
+            -project PointerLocker.xcodeproj \
+            -scheme PointerLocker \
+            -destination "id=$UDID" \
+            CODE_SIGNING_ALLOWED=NO
