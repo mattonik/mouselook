@@ -18,9 +18,9 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
         let window = UIWindow(windowScene: windowScene)
-        // Must be the root view controller: UIKit asks the root (or its
-        // childViewControllerForPointerLock) for prefersPointerLocked.
-        window.rootViewController = BrowserViewController()
+        // Must be the root view controller: UIKit asks the root for
+        // prefersPointerLocked, and RootViewController forwards to the browser.
+        window.rootViewController = RootViewController()
         window.makeKeyAndVisible()
         self.window = window
     }

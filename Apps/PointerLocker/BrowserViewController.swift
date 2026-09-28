@@ -15,6 +15,8 @@ import WebKit
 /// background keep-alive in BackgroundSessionKeeper.
 final class BrowserViewController: UIViewController {
     private(set) var webView: WKWebView!
+    /// Set by RootViewController; Settings uses it to switch services.
+    weak var root: RootViewController?
     let bridge = MouseBridge()
     let menuButton = UIButton(type: .system)
     private let toast = ToastView()
@@ -96,14 +98,29 @@ final class BrowserViewController: UIViewController {
         webView.reload()
     }
 
+    /// Which phase the page's session is in (none / queued-loading / playing).
+    func sessionPhase(_ completion: @escaping (BackgroundSessionKeeper.StreamPhase) -> Void) {
+        sessionKeeper.currentPhase(completion)
+    }
+
+    /// Before being replaced (service switch): stop listening to the mouse
+    /// and feeding the overlay, and release the lock.
+    func tearDown() {
+        forceUnlock()
+        bridge.invalidate()
+        hudFeeder.stop()
+        sessionKeeper.willEnterForeground() // stops any keep-alive
+    }
+
     // MARK: - Lock state
 
     private func setPageLock(_ locked: Bool) {
         guard locked != pageWantsLock else { return }
         pageWantsLock = locked
         bridge.isActive = locked
-        setNeedsUpdateOfPrefersPointerLocked()
-        setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
+        let host = parent ?? self // the root asks this controller via childViewControllerForPointerLock
+        host.setNeedsUpdateOfPrefersPointerLocked()
+        host.setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
         UIView.animate(withDuration: 0.2) { self.menuButton.alpha = locked ? 0 : 0.6 }
 
         if locked {
