@@ -36,6 +36,7 @@ final class BrowserViewController: UIViewController {
     private var settingsBefore: (identity: Bool, hud: Bool)?
     /// Which pointer lock held the last lock: "native" (WebKit's) or "polyfill".
     private(set) var lastLockMode: String?
+    private lazy var health = HealthMonitor(log: .shared) { [weak self] message in self?.toast.show(message) }
 
     private var pageWantsLock = false
     private var systemLocked = false
@@ -112,7 +113,9 @@ final class BrowserViewController: UIViewController {
             service: .current,
             onSwitchService: { [weak self] in self?.closeSettings { self?.root?.switchService() } },
             onShowSetupGuide: { [weak self] in self?.closeSettings { self?.root?.showSetupGuide() } },
-            onClose: { [weak self] in self?.closeSettings() }
+            onClose: { [weak self] in self?.closeSettings() },
+            checks: health.rows(for: ServiceProfile.current.allHealthChecks),
+            onCopyDiagnostics: { [weak self] in self?.copyDiagnostics() }
         )
         let controller = UIHostingController(rootView: view)
         controller.modalPresentationStyle = .formSheet
@@ -120,6 +123,17 @@ final class BrowserViewController: UIViewController {
         controller.presentationController?.delegate = self
         forceUnlock()
         present(controller, animated: true)
+    }
+
+    private func copyDiagnostics() {
+        let info = Bundle.main.infoDictionary ?? [:]
+        let app = "\(info["CFBundleShortVersionString"] as? String ?? "?") (\(info["CFBundleVersion"] as? String ?? "?"))"
+        let webKit = Bundle(for: WKWebView.self).infoDictionary?["CFBundleVersion"] as? String ?? "?"
+        UIPasteboard.general.string = DiagnosticsReport.text(
+            appVersion: app, osVersion: UIDevice.current.systemVersion, webKitVersion: webKit,
+            service: .current, identity: WebViewFactory.identity, lockMode: lastLockMode,
+            rows: health.rows(for: ServiceProfile.current.allHealthChecks),
+            entries: DiagnosticsLog.shared.entries)
     }
 
     /// Every way out of Settings applies the changes, then continues.
@@ -154,6 +168,7 @@ final class BrowserViewController: UIViewController {
         bridge.invalidate()
         hudFeeder.stop()
         sessionKeeper.willEnterForeground() // stops any keep-alive
+        health.resetSession()
         #if DEBUG
         debugBridge?.stop()
         #endif
@@ -167,6 +182,7 @@ final class BrowserViewController: UIViewController {
         // WebKit's own lock delivers mouse movement itself.
         bridge.isActive = locked && !native
         if locked { lastLockMode = native ? "native" : "polyfill" }
+        if locked { DiagnosticsLog.shared.record("lock", native ? "native" : "polyfill") } else { health.lockReleased() }
         let host = parent ?? self // the root asks this controller via childViewControllerForPointerLock
         host.setNeedsUpdateOfPrefersPointerLocked()
         host.setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
@@ -220,6 +236,8 @@ final class BrowserViewController: UIViewController {
         guard let failure = LoadFailure(error) else { return }
         setPageLock(false)
         loadFailure = failure
+        let nsError = error as NSError
+        DiagnosticsLog.shared.record("load-failure", "\(nsError.domain) \(nsError.code) \(failure.url?.host ?? "")")
         let notice = failure.notice(online: network.currentPath.status == .satisfied)
         statusOverlay.show(symbol: notice.symbol, title: notice.title, message: notice.message,
                            buttonTitle: "Try Again") { [weak self] in self?.retryLoad() }
@@ -312,6 +330,9 @@ extension BrowserViewController: WKScriptMessageHandler {
             return
         }
         switch type {
+        case "health":
+            health.receive(check: body["check"] as? String ?? "", result: body["result"] as? String ?? "",
+                           code: body["code"] as? String ?? "", host: webView.url?.host ?? "", locked: pageWantsLock)
         default: break
         }
     }
