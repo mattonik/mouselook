@@ -67,7 +67,7 @@ targets:
     type: bundle.unit-test
     platform: iOS
     sources:
-      - path: Tests/PointerLockerTests
+      - path: tests/PointerLockerTests
     dependencies:
       - target: PointerLocker
     settings:
