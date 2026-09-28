@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node tests/polyfill.test.mjs"
+    "test": "node tests/polyfill.test.mjs && node tests/health-checks.test.mjs"
   },
   "devDependencies": {
     "playwright": "^1.56.1"
