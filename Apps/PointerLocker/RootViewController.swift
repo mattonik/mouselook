@@ -78,28 +78,30 @@ final class RootViewController: UIViewController {
 
     private func finishOnboarding(with profile: ServiceProfile) {
         let rebuild = browser == nil || ServiceSwitch.needsRebuild(current: Settings.serviceID, chosen: profile.id)
-        OnboardingCompletion.finish(with: profile)
-        let proceed = { [weak self] in if rebuild { self?.showBrowser() } }
-        if presentedViewController != nil { dismiss(animated: true, completion: proceed) } else { proceed() }
+        let finish = { [weak self] in
+            OnboardingCompletion.finish(with: profile)
+            let proceed = { [weak self] in if rebuild { self?.showBrowser() } }
+            if self?.presentedViewController != nil { self?.dismiss(animated: true, completion: proceed) } else { proceed() }
+        }
+        guard rebuild, let browser else { return finish() }
+        // A new browser ends a game running in the current one: ask first.
+        browser.sessionPhase { [weak self] phase in
+            guard let self, phase != .none else { return finish() }
+            let alert = UIAlertController(title: "Switch to \(profile.name)?",
+                                          message: "Switching ends your current game session.",
+                                          preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+            alert.addAction(UIAlertAction(title: "Switch", style: .destructive) { _ in finish() })
+            (self.presentedViewController ?? self).present(alert, animated: true)
+        }
     }
 
     // MARK: From Settings
 
-    /// Settings ▸ Switch service…: warns if a game is running, then the chooser.
+    /// Settings ▸ Switch service…: the chooser. Leaving a running game is
+    /// confirmed only if a different service is picked.
     func switchService() {
-        guard let browser else { return showOnboarding(start: .chooser, cancellable: true) }
-        browser.sessionPhase { [weak self] phase in
-            guard let self else { return }
-            guard phase != .none else { return self.showOnboarding(start: .chooser, cancellable: true) }
-            let alert = UIAlertController(title: "Switch service?",
-                                          message: "Switching ends your current game session.",
-                                          preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-            alert.addAction(UIAlertAction(title: "Switch", style: .destructive) { _ in
-                self.showOnboarding(start: .chooser, cancellable: true)
-            })
-            self.present(alert, animated: true)
-        }
+        showOnboarding(start: .chooser, cancellable: true)
     }
 
     /// Settings ▸ Show setup guide: Get ready for the current service.
