@@ -114,6 +114,35 @@ await test("scrub-lock: a tiny wiggle or a press elsewhere doesn't count", async
   await p.close();
 });
 
+// Figma's newer X/Y fields: hashed class names, an ew-resize label next to the input.
+const newScrub = `<div class="qw5a"><div id="label" class="_1rk7okh2 qw5m0k0" style="cursor:ew-resize;display:inline-block;width:40px;height:20px">X</div><input value="100"></div>`;
+await test("scrub-lock: a new-style scrub label (resize cursor next to a number field) is recognised", async () => {
+  const p = await open(newScrub, `{ checks: ["scrub-lock"], phase: () => 0, scrubWaitMs: 100 }`);
+  await p.mouse.move(10, 10); await p.mouse.down(); await p.mouse.move(30, 10, { steps: 5 });
+  await wait(150); await p.mouse.up();
+  assert.deepEqual(await health(p), [{ type: "health", check: "scrub-lock", result: "problem", code: "no-request" }]);
+  await p.close();
+});
+
+await test("scrub-lock: a resize handle without a number field doesn't count", async () => {
+  const p = await open(`<div><div style="cursor:ew-resize;width:40px;height:20px"></div></div><p>panel</p>`,
+    `{ checks: ["scrub-lock"], phase: () => 0, scrubWaitMs: 100 }`);
+  await p.mouse.move(10, 10); await p.mouse.down(); await p.mouse.move(30, 10, { steps: 5 });
+  await wait(150); await p.mouse.up();
+  assert.deepEqual(await health(p), []);
+  await p.close();
+});
+
+await test("scrub-lock: a panel's resize handle doesn't count, even with number fields in the panel", async () => {
+  const panel = `<div style="position:relative;height:600px"><div style="position:absolute;left:0;top:0;width:8px;height:600px;cursor:ew-resize"></div>`
+    + `<div style="margin-left:20px"><input value="1"><input value="2"></div></div>`;
+  const p = await open(panel, `{ checks: ["scrub-lock"], phase: () => 0, scrubWaitMs: 100 }`);
+  await p.mouse.move(11, 100); await p.mouse.down(); await p.mouse.move(40, 100, { steps: 5 });
+  await wait(150); await p.mouse.up();
+  assert.deepEqual(await health(p), []);
+  await p.close();
+});
+
 await test("a check that throws doesn't break the page or other checks", async () => {
   const p = await open(`<main>Library</main>`,
     `{ checks: ["desktop-client"], get phase() { throw new Error("boom"); }, desktopClientOkAfterMs: 200 }`);

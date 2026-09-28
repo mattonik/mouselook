@@ -92,10 +92,30 @@
 
     // Figma: dragging a number's scrub label should request the lock.
     "scrub-lock"() {
+      // Older fields sit in "scrubbable" containers; newer ones have hashed
+      // class names, so also accept a left-right resize cursor on the label
+      // (or just above it) with a number field in the same short row. The
+      // row height keeps panel resize handles, which share the cursor and
+      // sit in panels full of fields, from counting.
+      const isScrubLabel = (target) => {
+        if (!(target instanceof Element)) return false;
+        if (target.closest('[class*="scrubbable"]')) return true;
+        let el = target;
+        let resizeCursor = false;
+        for (let i = 0; el && i < 3; i++, el = el.parentElement) {
+          if (/^(ew|col)-resize$/.test(getComputedStyle(el).cursor)) { resizeCursor = true; break; }
+        }
+        if (!resizeCursor) return false;
+        el = target;
+        for (let i = 0; el && i < 3; i++, el = el.parentElement) {
+          if (el.getBoundingClientRect().height <= 64 && el.querySelector("input")) return true;
+        }
+        return false;
+      };
       let press = null;
       window.addEventListener("pointerdown", (e) => {
         if (!e.isTrusted || e.button !== 0 || e.pointerType === "touch") { press = null; return; }
-        const onScrub = e.target instanceof Element && e.target.closest('[class*="scrubbable"]');
+        const onScrub = isScrubLabel(e.target);
         press = onScrub ? { x: e.clientX, y: e.clientY, requested: false, timer: null } : null;
       }, true);
       onLockRequest(() => {
