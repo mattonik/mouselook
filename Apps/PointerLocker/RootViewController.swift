@@ -49,6 +49,7 @@ final class RootViewController: UIViewController {
         onboarding = nil
         let browser = BrowserViewController()
         browser.root = self
+        DiagnosticsLog.shared.record("service", ServiceProfile.current.id)
         self.browser = browser
         embed(browser)
         refreshSystemPreferences()
