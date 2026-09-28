@@ -21,7 +21,9 @@ struct SettingsView: View {
             Form {
                 Section("Service") {
                     LabeledContent("Playing on", value: service.name)
-                    Button("Switch service…", action: onSwitchService)
+                    if ServiceSwitch.isOffered() {
+                        Button("Switch service…", action: onSwitchService)
+                    }
                     Button("Show setup guide", action: onShowSetupGuide)
                 }
                 Section("Mouse") {

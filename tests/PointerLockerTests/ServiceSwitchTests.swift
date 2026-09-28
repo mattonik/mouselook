@@ -10,4 +10,9 @@ final class ServiceSwitchTests: XCTestCase {
         XCTAssertTrue(ServiceSwitch.needsRebuild(current: "geforcenow", chosen: "xbox"))
         XCTAssertTrue(ServiceSwitch.needsRebuild(current: nil, chosen: "geforcenow"))
     }
+
+    func testSwitchingIsOfferedOnlyWithAnotherServiceToPick() {
+        XCTAssertFalse(ServiceSwitch.isOffered(selectable: [.geforceNow]))
+        XCTAssertTrue(ServiceSwitch.isOffered(selectable: [.geforceNow, .generic]))
+    }
 }
