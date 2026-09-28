@@ -395,6 +395,52 @@ await test("HUD counts clicks per button and clears released ones", async () => 
   assert.match(text, /clicks L1 M0 R1 B0 F0 +wheel 1/);
 });
 
+// iPadOS WebKit leaves metaKey/ctrlKey false on wheel events even while the
+// key is held, so ⌘ + scroll pans in Figma instead of zooming. Reproduced
+// here with a real key press and a wheel event without the flags.
+const modPage = await browser.newPage();
+await modPage.addInitScript({ content: stub });
+await modPage.addInitScript({ content: polyfill });
+await modPage.goto(`data:text/html,<canvas id="c" width="200" height="200"></canvas>`);
+const wheelFlags = () => modPage.evaluate(() => {
+  let seen = null;
+  const c = document.getElementById("c");
+  c.addEventListener("wheel", (e) => { seen = { meta: e.metaKey, ctrl: e.ctrlKey, alt: e.altKey, shift: e.shiftKey }; }, { once: true });
+  c.dispatchEvent(new WheelEvent("wheel", { deltaY: 10, bubbles: true }));
+  return seen;
+});
+
+await test("a wheel while ⌘ is held reads as ⌘ + wheel", async () => {
+  await modPage.keyboard.down("Meta");
+  assert.deepEqual(await wheelFlags(), { meta: true, ctrl: false, alt: false, shift: false });
+  await modPage.keyboard.up("Meta");
+  assert.deepEqual(await wheelFlags(), { meta: false, ctrl: false, alt: false, shift: false });
+});
+
+await test("Control, Option and Shift are carried too, and clicks get them as well", async () => {
+  await modPage.keyboard.down("Control");
+  await modPage.keyboard.down("Alt");
+  await modPage.keyboard.down("Shift");
+  assert.deepEqual(await wheelFlags(), { meta: false, ctrl: true, alt: true, shift: true });
+  const click = await modPage.evaluate(() => {
+    let meta = null;
+    const c = document.getElementById("c");
+    c.addEventListener("click", (e) => { meta = e.ctrlKey; }, { once: true });
+    c.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    return meta;
+  });
+  assert.equal(click, true);
+  for (const k of ["Control", "Alt", "Shift"]) await modPage.keyboard.up(k);
+});
+
+await test("held modifiers are forgotten when the page loses focus", async () => {
+  await modPage.keyboard.down("Meta");
+  await modPage.evaluate(() => window.dispatchEvent(new Event("blur")));
+  assert.equal((await wheelFlags()).meta, false, "⌘-Tab away must not leave ⌘ stuck");
+  await modPage.keyboard.up("Meta");
+});
+await modPage.close();
+
 await browser.close();
 if (failures) {
   console.log(`\n${failures} test(s) failed`);

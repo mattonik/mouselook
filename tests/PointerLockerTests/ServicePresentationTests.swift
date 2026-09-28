@@ -3,8 +3,8 @@ import XCTest
 @testable import PointerLocker
 
 final class ServicePresentationTests: XCTestCase {
-    func testOnboardingOffersGeForceNowButNotTheGenericProfile() {
-        XCTAssertEqual(ServiceProfile.selectable.map(\.id), ["geforcenow"])
+    func testOnboardingOffersGeForceNowAndFigmaButNotTheGenericProfile() {
+        XCTAssertEqual(ServiceProfile.selectable.map(\.id), ["geforcenow", "figma"])
     }
 
     func testEverySelectableServiceCanBePresented() {
@@ -27,7 +27,13 @@ final class ServicePresentationTests: XCTestCase {
         XCTAssertEqual(tip?.title, "Set the stream to 1920×1080")
     }
 
+    func testFigmaTellsYouHowToScrub() {
+        let tip = ServiceProfile.figma.setupTips.first { $0.id == "scrub" }
+        XCTAssertEqual(tip?.title, "Drag a number's label to change it")
+    }
+
     func testProfilesAreFoundByID() {
+        XCTAssertEqual(ServiceProfile.profile(id: "figma")?.name, "Figma")
         XCTAssertEqual(ServiceProfile.profile(id: "geforcenow")?.name, "GeForce NOW")
         XCTAssertEqual(ServiceProfile.profile(id: "generic")?.id, "generic")
         XCTAssertNil(ServiceProfile.profile(id: "nope"))

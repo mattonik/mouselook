@@ -27,6 +27,20 @@ final class ServiceProfileTests: XCTestCase {
         XCTAssertTrue(identity.desktopContentMode)
     }
 
+    func testFigmaPresentsAsChromeOnAMac() {
+        // Figma turns pointer lock off for number scrubbing in Safari.
+        let identity = ServiceProfile.figma.identity
+        XCTAssertTrue(identity.userAgent?.contains("Macintosh") == true)
+        XCTAssertTrue(identity.userAgent?.contains("Chrome/") == true)
+        XCTAssertEqual(identity.platform, "MacIntel")
+        XCTAssertEqual(identity.maxTouchPoints, 0)
+        XCTAssertTrue(identity.desktopContentMode)
+    }
+
+    func testFigmaHasNoGameSessionToKeepAlive() {
+        XCTAssertEqual(ServiceProfile.figma.sessionPhaseScript, "0")
+    }
+
     func testGenericProfileDoesNotDisguiseTheDevice() {
         XCTAssertEqual(ServiceProfile.generic.identity, .webKitDefault)
     }

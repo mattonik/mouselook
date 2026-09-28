@@ -25,6 +25,7 @@ final class LaunchRouteTests: XCTestCase {
 
     func testAChosenServiceOpensDirectly() {
         XCTAssertEqual(LaunchRoute.resolve(serviceID: "geforcenow"), .browser("geforcenow"))
+        XCTAssertEqual(LaunchRoute.resolve(serviceID: "figma"), .browser("figma"))
     }
 
     func testUnknownOrInternalServicesGoBackToOnboarding() {
