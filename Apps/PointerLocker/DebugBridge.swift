@@ -18,6 +18,7 @@ final class DebugBridge {
     private let base: URL
     private let token: String
     private var stopped = false
+    private var pending: URLSessionDataTask?
 
     init?(webView: WKWebView) {
         let info = Bundle.main.infoDictionary ?? [:]
@@ -46,13 +47,15 @@ final class DebugBridge {
     /// take scripts meant for the new one (its pending poll keeps it alive).
     func stop() {
         stopped = true
+        pending?.cancel()
+        pending = nil
     }
 
     private func poll() {
         guard !stopped else { return }
         var request = makeRequest("next")
         request.timeoutInterval = 60
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
+        let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
             guard let self else { return }
             let status = (response as? HTTPURLResponse)?.statusCode
             guard let data, status == 200, let script = String(data: data, encoding: .utf8) else {
@@ -62,11 +65,13 @@ final class DebugBridge {
                 return
             }
             DispatchQueue.main.async { self.run(script) }
-        }.resume()
+        }
+        pending = task
+        task.resume()
     }
 
     private func run(_ script: String) {
-        guard let webView else { return }
+        guard !stopped, let webView else { return }
         let body = "return JSON.stringify(await (async () => {\n\(script)\n})()) ?? 'undefined';"
         webView.callAsyncJavaScript(body, arguments: [:], in: nil, in: .page) { [weak self] result in
             let reply: String
