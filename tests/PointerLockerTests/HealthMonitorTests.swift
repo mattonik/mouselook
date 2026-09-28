@@ -61,6 +61,16 @@ final class HealthMonitorTests: XCTestCase {
         XCTAssertTrue(log.entries.isEmpty)
     }
 
+    func testCodesThatAreNotShortWordsAreIgnored() {
+        // Pages can post to the message handler; the code must never carry page content.
+        for code in ["no-request\nApp: fake", String(repeating: "a", count: 33), "https://example.com/private", ""] {
+            monitor.receive(check: "scrub-lock", result: "problem", code: code, host: "www.figma.com", locked: false)
+        }
+        XCTAssertTrue(monitor.results.isEmpty)
+        XCTAssertTrue(log.entries.isEmpty)
+        XCTAssertEqual(toasts, [])
+    }
+
     func testSettingsRowsFollowTheServicesChecks() {
         monitor.receive(check: "desktop-client", result: "ok", code: "desktop", host: "play.geforcenow.com", locked: false)
         let rows = monitor.rows(for: ServiceProfile.geforceNow.allHealthChecks)

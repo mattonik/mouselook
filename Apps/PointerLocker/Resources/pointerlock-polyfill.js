@@ -190,7 +190,11 @@
   }
 
   function requestNative(el, options) {
-    const promise = new Promise((resolve, reject) => {
+    const attempt = { el, promise: null };
+    // Registered before WebKit is called: a synchronous throw finishes the
+    // attempt inside the executor, and must clear this entry, not leave it.
+    nativePending = attempt;
+    attempt.promise = new Promise((resolve, reject) => {
       let done = false;
       const finish = (ok) => {
         if (done) return;
@@ -198,7 +202,7 @@
         clearTimeout(timer);
         window.removeEventListener("pointerlockchange", onChange, true);
         window.removeEventListener("pointerlockerror", onError, true);
-        nativePending = null;
+        if (nativePending === attempt) nativePending = null;
         if (!el.isConnected) {
           reject(new DOMException("Element is not in a document", "WrongDocumentError"));
           return;
@@ -229,13 +233,28 @@
         finish(false);
       }
     });
-    nativePending = { el, promise };
-    return promise;
+    return attempt.promise;
   }
 
   let swallowNativeErrorsUntil = 0;
   window.addEventListener("pointerlockerror", (e) => {
     if (!ownEvents.has(e) && performance.now() < swallowNativeErrorsUntil) e.stopImmediatePropagation();
+  }, true);
+
+  // After a fallback, WebKit may still grant its lock late (say, after a
+  // permission prompt). The polyfill holds the lock by then, so release
+  // WebKit's and keep both changes from the page.
+  let evictingNative = false;
+  window.addEventListener("pointerlockchange", (e) => {
+    if (ownEvents.has(e) || nativeLocked || nativePending || nativeUsable) return;
+    if (nativeElement()) {
+      evictingNative = true;
+      e.stopImmediatePropagation();
+      if (native.exit) native.exit.call(document);
+    } else if (evictingNative) {
+      evictingNative = false;
+      e.stopImmediatePropagation();
+    }
   }, true);
 
   // The page learns about native lock changes from WebKit's own events; the

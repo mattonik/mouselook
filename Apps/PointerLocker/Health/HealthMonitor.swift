@@ -36,11 +36,17 @@ final class HealthMonitor {
     /// A report from the page. Unknown checks or results are ignored: pages
     /// can post to the message handler too.
     func receive(check: String, result: String, code: String, host: String, locked: Bool) {
-        guard let id = HealthCheckID(rawValue: check), let result = HealthResult(rawValue: result) else { return }
+        guard let id = HealthCheckID(rawValue: check), let result = HealthResult(rawValue: result),
+              Self.isShortWord(code) else { return }
         results[id] = HealthStatus(result: result, code: code, date: now())
         log.record("check", "\(id.rawValue) \(result.rawValue) \(code) \(host)", at: now())
         guard result == .problem, toasted.insert(id).inserted else { return }
         if locked { queued.append(id) } else { showToast(id.problemMessage) }
+    }
+
+    /// Codes are short words ("no-request"), never page content.
+    private static func isShortWord(_ code: String) -> Bool {
+        (1...32).contains(code.count) && code.allSatisfy { ("a"..."z").contains($0) || $0 == "-" }
     }
 
     func lockReleased() {

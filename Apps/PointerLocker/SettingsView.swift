@@ -61,10 +61,15 @@ struct SettingsView: View {
                 Section {
                     ForEach(checks) { row in
                         LabeledContent(row.title) {
-                            switch row.status?.result {
-                            case .ok?: Label("OK", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
-                            case .problem?: Label("Problem", systemImage: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
-                            case nil: Text("Not run yet").foregroundStyle(.secondary)
+                            HStack(spacing: 8) {
+                                switch row.status?.result {
+                                case .ok?: Label("OK", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                                case .problem?: Label("Problem", systemImage: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
+                                case nil: Text("Not run yet").foregroundStyle(.secondary)
+                                }
+                                if let date = row.status?.date {
+                                    Text(date, style: .time).foregroundStyle(.secondary)
+                                }
                             }
                         }
                     }

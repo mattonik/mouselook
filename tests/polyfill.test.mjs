@@ -476,7 +476,11 @@ const fakeNative = (behaviour) => `
       setTimeout(() => document.dispatchEvent(new Event("pointerlockerror", { bubbles: true })), 5);
       return Promise.reject(new DOMException("not allowed", "NotAllowedError"));
     }
-    return undefined; // "silent": never locks, never errors
+    if (${JSON.stringify(behaviour)} === "throws") throw new TypeError("unsupported options");
+    if (${JSON.stringify(behaviour)} === "late") {
+      setTimeout(() => { locked = el; document.dispatchEvent(new Event("pointerlockchange", { bubbles: true })); }, 350);
+    }
+    return undefined; // "silent": never locks, never errors ("late": locks after the fallback)
   };
 `;
 const nativePage = async (behaviour) => {
@@ -575,6 +579,33 @@ await test("testElementRemovedWhileNativePending: no lock, no stale state", asyn
   assert.equal(r.locked, false);
   assert.deepEqual(r.messages, []);
   assert.equal(r.outcome, "WrongDocumentError");
+  await p.close();
+});
+
+await test("a native request that throws falls back, and the element can lock again after unlocking", async () => {
+  const p = await nativePage("throws");
+  assert.equal((await lockCanvas(p)).el, "c");
+  await p.evaluate(() => document.exitPointerLock());
+  await p.evaluate(() => new Promise((r) => setTimeout(r, 20)));
+  assert.equal(await p.evaluate(() => document.pointerLockElement), null);
+  const again = await lockCanvas(p);
+  assert.equal(again.el, "c", "second lock on the same canvas");
+  await p.close();
+});
+
+await test("a native lock that arrives after the fallback is released, and the page doesn't see it", async () => {
+  const p = await nativePage("late");
+  const r = await lockCanvas(p);
+  assert.equal(r.el, "c");
+  await p.evaluate(() => new Promise((r) => setTimeout(r, 200)));
+  const after = await p.evaluate(() => ({
+    exits: window.__nativeExits || 0, events: window.__events, locked: window.__pointerLocker.isLocked,
+    messages: window.__messages,
+  }));
+  assert.equal(after.exits, 1, "WebKit's late lock is exited");
+  assert.deepEqual(after.events, ["pointerlockchange"], "only the fallback's change");
+  assert.equal(after.locked, true, "the polyfill lock stays");
+  assert.deepEqual(after.messages, [{ type: "lock", mode: "polyfill" }]);
   await p.close();
 });
 
