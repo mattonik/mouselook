@@ -8,8 +8,8 @@ jobs:
   polyfill-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - run: npm install
@@ -22,7 +22,7 @@ jobs:
       matrix:
         scheme: [PointerLocker, MouseLockPrototype]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Use the newest Xcode 26
         # Xcode 16's iOS 18 simulator lacks libswiftWebKit.dylib, which the
         # app links, so the test host crashed before any test ran.
@@ -43,7 +43,7 @@ jobs:
   ios-tests:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Use the newest Xcode 26
         # Xcode 16's iOS 18 simulator lacks libswiftWebKit.dylib, which the
         # app links, so the test host crashed before any test ran.
