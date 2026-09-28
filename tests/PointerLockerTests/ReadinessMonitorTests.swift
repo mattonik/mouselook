@@ -66,4 +66,21 @@ final class ReadinessMonitorTests: XCTestCase {
         monitor.update(windowSize: CGSize(width: 944, height: 1260), screenSize: screen)
         XCTAssertEqual(monitor.display, .windowed, "iPadOS 26 window / Stage Manager")
     }
+
+    func testUnchangedStateDoesNotRedrawThePage() {
+        // Observation notifies on every assignment; the 10 Hz tick and each
+        // layout pass must not re-render Get ready when nothing changed.
+        let monitor = ReadinessMonitor(hub: MouseEventHub(attachingToMice: false))
+        let screen = CGSize(width: 1024, height: 1366)
+        monitor.update(mouseCount: 1)
+        monitor.update(windowSize: screen, screenSize: screen)
+        var changes = 0
+        withObservationTracking {
+            _ = (monitor.mouse, monitor.keyboard, monitor.display)
+        } onChange: { changes += 1 }
+        monitor.tick(at: 100)
+        monitor.update(windowSize: screen, screenSize: screen)
+        monitor.update(keyboardConnected: false)
+        XCTAssertEqual(changes, 0)
+    }
 }
