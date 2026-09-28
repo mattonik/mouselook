@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 180 180">
+  <!-- Tinted appearance: grayscale on transparent; iPadOS applies the tint colour. -->
+  <circle cx="90" cy="90" r="52" fill="none" stroke="#9a9a9a" stroke-width="7" stroke-dasharray="58 23.7" transform="rotate(-45 90 90)"/>
+  <path d="M78 62 L78 118 L92 104 L102 126 L112 121 L102 100 L121 100 Z" fill="#ffffff" stroke="#000000" stroke-opacity="0.6" stroke-width="3" stroke-linejoin="round"/>
+</svg>
