@@ -54,8 +54,9 @@ final class BrowserViewController: UIViewController {
 
         bridge.sensitivity = Float(Settings.sensitivity)
         bridge.invertY = Settings.invertY
-        bridge.send = { [weak self] script in
-            self?.webView.evaluateJavaScript(script, completionHandler: nil)
+        bridge.send = { [weak self] script, completion in
+            guard let webView = self?.webView else { return completion() }
+            webView.evaluateJavaScript(script) { _, _ in completion() }
         }
 
         sessionKeeper = BackgroundSessionKeeper(webView: webView)

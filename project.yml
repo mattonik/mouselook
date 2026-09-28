@@ -60,7 +60,20 @@ targets:
         NSLocalNetworkUsageDescription: Debug builds connect to a developer Mac on your network for testing.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
-    scheme: {}
+    scheme:
+      testTargets: [PointerLockerTests]
+
+  PointerLockerTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests/PointerLockerTests
+    dependencies:
+      - target: PointerLocker
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: sk.icebear.pointerlockertests
+        GENERATE_INFOPLIST_FILE: YES
 
   MouseLockPrototype:
     type: application
