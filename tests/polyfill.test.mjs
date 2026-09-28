@@ -17,10 +17,12 @@ const stub = `
   window.webkit = { messageHandlers: { pointerLocker: {
     postMessage: (m) => window.__native.push(m.type) } } };
 `;
+// What the app injects for the GeForce NOW profile's browser identity.
+const identity = `window.__pointerLockerConfig = { identity: { platform: "MacIntel", maxTouchPoints: 0 } };`;
 
 const browser = await chromium.launch();
 const page = await browser.newPage();
-await page.addInitScript({ content: stub });
+await page.addInitScript({ content: stub + identity });
 await page.addInitScript({ content: polyfill });
 await page.goto(`data:text/html,<canvas id="c" width="200" height="200"></canvas>`);
 
@@ -230,8 +232,25 @@ await test("removing the locked element releases the lock", async () => {
   assert.equal(await page.evaluate(() => window.__pointerLocker.isLocked), false);
 });
 
-await test("maxTouchPoints is spoofed to 0", async () => {
+await test("the identity's maxTouchPoints and platform are applied", async () => {
   assert.equal(await page.evaluate(() => navigator.maxTouchPoints), 0);
+  assert.equal(await page.evaluate(() => navigator.platform), "MacIntel");
+});
+
+await test("without an identity nothing is spoofed", async () => {
+  const plain = await browser.newPage({ hasTouch: true });
+  await plain.addInitScript({ content: stub });
+  await plain.addInitScript({ content: polyfill });
+  await plain.goto(`data:text/html,<p>`);
+  const r = await plain.evaluate(() => ({
+    touch: navigator.maxTouchPoints,
+    workerNative: /native code/.test(String(window.Worker)),
+    polyfill: !!window.__pointerLocker,
+  }));
+  await plain.close();
+  assert.ok(r.touch > 0, "maxTouchPoints left alone");
+  assert.equal(r.workerNative, true, "Worker left alone");
+  assert.equal(r.polyfill, true, "pointer lock still provided");
 });
 
 // Native element fullscreen moves the WKWebView out of the app's view
@@ -291,7 +310,7 @@ await test("removing the fullscreen element exits fullscreen", async () => {
 // made to report "iPad" in a worker, so the tests check that the worker's
 // getter was replaced (not native) as well as the value it returns.
 const workerPage = await browser.newPage();
-await workerPage.addInitScript({ content: stub });
+await workerPage.addInitScript({ content: stub + identity });
 await workerPage.addInitScript({ content: polyfill });
 await workerPage.route("https://pointerlocker.test/**", (r) =>
   r.fulfill({ contentType: "text/html", body: "<!doctype html><title>t</title>" }));
@@ -334,7 +353,7 @@ await test("workers still run their own code", async () => {
 const hud = readFileSync(
   new URL("../Apps/PointerLocker/Resources/debug-hud.js", import.meta.url), "utf8");
 const hudPage = await browser.newPage();
-await hudPage.addInitScript({ content: stub });
+await hudPage.addInitScript({ content: stub + identity });
 await hudPage.addInitScript({ content: polyfill });
 await hudPage.addInitScript({ content: hud });
 await hudPage.goto(`data:text/html,<canvas id="c" width="200" height="200"></canvas>`);

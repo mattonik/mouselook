@@ -59,8 +59,11 @@ extension BrowserViewController {
             }
         })
 
-        let spoof = UIAction(title: "Pretend to be a Mac (reloads)", state: Settings.spoofDesktop ? .on : .off) { [weak self] _ in
-            Settings.spoofDesktop.toggle()
+        let profile = ServiceProfile.current
+        let identity = UIAction(title: "Use \(profile.name) browser identity (reloads)",
+                                attributes: profile.identity == .webKitDefault ? .disabled : [],
+                                state: Settings.useServiceIdentity ? .on : .off) { [weak self] _ in
+            Settings.useServiceIdentity.toggle()
             self?.applySettingsAndReload()
         }
 
@@ -71,7 +74,7 @@ extension BrowserViewController {
 
         let help = UIAction(title: "Release mouse: hold Esc, ⌘. or three-finger tap", attributes: .disabled) { _ in }
 
-        return [navigation, UIMenu(options: .displayInline, children: [sensitivity, invert, microphone, keepAlive, spoof, hud]), help]
+        return [navigation, UIMenu(options: .displayInline, children: [sensitivity, invert, microphone, keepAlive, identity, hud]), help]
     }
 
     private func promptForURL() {

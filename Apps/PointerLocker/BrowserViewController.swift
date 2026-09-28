@@ -81,7 +81,7 @@ final class BrowserViewController: UIViewController {
     /// Rebuild scripts and user agent after a settings change, then reload.
     func applySettingsAndReload() {
         WebViewFactory.installUserScripts(in: webView.configuration.userContentController)
-        WebViewFactory.applyUserAgent(to: webView)
+        WebViewFactory.applyIdentity(to: webView)
         hudFeeder.update()
         webView.reload()
     }
@@ -191,6 +191,14 @@ extension BrowserViewController: WKScriptMessageHandler {
 // MARK: - Navigation
 
 extension BrowserViewController: WKNavigationDelegate {
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
+                 preferences: WKWebpagePreferences,
+                 decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void) {
+        // Follows the identity setting, which can change while running.
+        preferences.preferredContentMode = WebViewFactory.identity.desktopContentMode ? .desktop : .recommended
+        decisionHandler(.allow, preferences)
+    }
+
     func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
         // A new document starts unlocked.
         setPageLock(false)

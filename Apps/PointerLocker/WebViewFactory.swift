@@ -11,7 +11,7 @@ enum WebViewFactory {
         // Off: the polyfill emulates the Fullscreen API in-page. Native element
         // fullscreen reparents the web view out of the view controller.
         config.preferences.isElementFullscreenEnabled = false
-        config.defaultWebpagePreferences.preferredContentMode = .desktop
+        config.defaultWebpagePreferences.preferredContentMode = identity.desktopContentMode ? .desktop : .recommended
         config.userContentController.add(WeakScriptMessageHandler(messageHandler), name: messageHandlerName)
         installUserScripts(in: config.userContentController)
 
@@ -20,7 +20,7 @@ enum WebViewFactory {
         webView.allowsBackForwardNavigationGestures = false
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.scrollView.bounces = false
-        applyUserAgent(to: webView)
+        applyIdentity(to: webView)
         return webView
     }
 
@@ -32,7 +32,7 @@ enum WebViewFactory {
             assertionFailure("pointerlock-polyfill.js missing from bundle")
             return
         }
-        let config = "window.__pointerLockerConfig={spoofDesktop:\(Settings.spoofDesktop)};"
+        let config = ServiceProfile.current.pageConfigScript(useIdentity: Settings.useServiceIdentity)
         controller.addUserScript(WKUserScript(source: config + polyfill, injectionTime: .atDocumentStart, forMainFrameOnly: true))
 
         if Settings.debugHUD, let hud = resource("debug-hud") {
@@ -40,8 +40,15 @@ enum WebViewFactory {
         }
     }
 
-    static func applyUserAgent(to webView: WKWebView) {
-        webView.customUserAgent = Settings.spoofDesktop ? Settings.desktopUserAgent : nil
+    /// The active profile's identity, as the user has it set.
+    static var identity: BrowserIdentity {
+        ServiceProfile.current.identity(enabled: Settings.useServiceIdentity)
+    }
+
+    /// User agent of the active identity. The content mode is applied per
+    /// navigation (BrowserViewController's decidePolicyFor…preferences).
+    static func applyIdentity(to webView: WKWebView) {
+        webView.customUserAgent = identity.userAgent
     }
 
     private static func resource(_ name: String) -> String? {
