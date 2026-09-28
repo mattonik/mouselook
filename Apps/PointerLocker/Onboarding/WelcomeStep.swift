@@ -15,7 +15,7 @@ struct WelcomeStep: View {
                         .accessibilityHidden(true)
                     Text("Mouselook")
                         .font(.largeTitle.bold())
-                    Text("Play cloud games with a mouse and keyboard. The mouse locks to the game, the same as on a PC.")
+                    Text("Use a mouse and keyboard in cloud games and web apps. The pointer locks the same as on a computer.")
                         .font(.title3)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)

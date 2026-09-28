@@ -14,5 +14,6 @@ final class ServiceSwitchTests: XCTestCase {
     func testSwitchingIsOfferedOnlyWithAnotherServiceToPick() {
         XCTAssertFalse(ServiceSwitch.isOffered(selectable: [.geforceNow]))
         XCTAssertTrue(ServiceSwitch.isOffered(selectable: [.geforceNow, .generic]))
+        XCTAssertTrue(ServiceSwitch.isOffered(), "GeForce NOW and Figma")
     }
 }

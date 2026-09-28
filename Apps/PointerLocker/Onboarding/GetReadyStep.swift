@@ -14,17 +14,16 @@ struct GetReadyStep: View {
                     .padding(.top, 48)
                     .padding(.bottom, 12)
 
-                StatusRow(symbol: "computermouse", copy: ReadinessCopy.mouse(monitor.mouse), ok: monitor.mouse != .notConnected,
+                StatusRow(symbol: "computermouse", copy: ReadinessCopy.mouse(monitor.mouse, profile.wording), ok: monitor.mouse != .notConnected,
                           pulsing: monitor.mouse == .moving && !reduceMotion)
-                StatusRow(symbol: "keyboard", copy: ReadinessCopy.keyboard(monitor.keyboard), ok: monitor.keyboard == .connected)
-                StatusRow(symbol: "rectangle.inset.filled", copy: ReadinessCopy.display(monitor.display), ok: monitor.display == .fullScreen)
+                StatusRow(symbol: "keyboard", copy: ReadinessCopy.keyboard(monitor.keyboard, profile.wording), ok: monitor.keyboard == .connected)
+                StatusRow(symbol: "rectangle.inset.filled", copy: ReadinessCopy.display(monitor.display, profile.wording), ok: monitor.display == .fullScreen)
 
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(profile.setupTips) { tip in
                         InfoRow(symbol: tip.symbol, title: tip.title, detail: tip.detail)
                     }
-                    InfoRow(symbol: "escape", title: "Release the mouse",
-                            detail: "Hold Esc, press ⌘ + ., or tap the screen with three fingers. To send Esc to the game, press ⌘ + Delete.")
+                    InfoRow(symbol: "escape", title: "Release the mouse", detail: profile.wording.release)
                 }
                 .padding(.top, 12)
             }
@@ -33,7 +32,7 @@ struct GetReadyStep: View {
             .frame(maxWidth: .infinity)
         }
         .safeAreaInset(edge: .bottom) {
-            Button(action: onStart) { Text("Start playing").frame(maxWidth: 320) }
+            Button(action: onStart) { Text(profile.wording.start).frame(maxWidth: 320) }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
                 .padding(.vertical, 16)
