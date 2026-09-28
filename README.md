@@ -189,8 +189,9 @@ iOS targets for the Simulator on a macOS runner.
 - **The page process crashes** (for example when memory runs low): the app
   reloads the page. After 3 crashes within a minute it stops and offers a
   Reload button, so it can't get stuck in a loop.
-- **A page fails to load**: the app shows why instead of a blank page. When
-  there is no connection, it loads the page again once the connection is back.
+- **A page fails to load**: the app shows why instead of a blank page: "You're
+  offline" (it loads the page again once the connection is back), "Can't reach
+  <site>" when online but the site doesn't answer, or the system's reason.
 - **Stuck input**: releasing the mouse releases any held mouse buttons. So
   does disconnecting the mouse. Keys held when the app loses focus get their
   key-up.
