@@ -15,6 +15,27 @@ struct BrowserIdentity: Equatable {
 
     /// No disguise: an iPad as WebKit presents it.
     static let webKitDefault = BrowserIdentity(userAgent: nil, platform: nil, maxTouchPoints: nil, desktopContentMode: false)
+
+    /// Safari 26.4 on a Mac: the same WebKit as iPadOS 26, so what the page
+    /// sees matches what it gets. Pages that check the platform read it from
+    /// Web Workers too, hence `platform`.
+    static let macSafari = BrowserIdentity(
+        userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 "
+            + "(KHTML, like Gecko) Version/26.4 Safari/605.1.15",
+        platform: "MacIntel",
+        maxTouchPoints: 0,
+        desktopContentMode: true
+    )
+
+    /// Chrome on a Mac, for pages that turn off features in Safari that this
+    /// app provides (see FigmaProfile.swift). The engine is still WebKit.
+    static let macChrome = BrowserIdentity(
+        userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+            + "(KHTML, like Gecko) Chrome/150.0.0.0 Safari/537.36",
+        platform: "MacIntel",
+        maxTouchPoints: 0,
+        desktopContentMode: true
+    )
 }
 
 /// Everything specific to one streaming service ("engine"): where it lives,
@@ -37,11 +58,13 @@ struct ServiceProfile {
     let artwork: ServiceArtwork
     /// Service-specific items on the Get ready page.
     let setupTips: [SetupTip]
+    /// How the Get ready page talks about using it.
+    let wording: ServiceWording
 
-    static let all: [ServiceProfile] = [.geforceNow, .generic]
+    static let all: [ServiceProfile] = [.geforceNow, .figma, .generic]
 
     /// What onboarding and Settings offer. `generic` stays internal.
-    static let selectable: [ServiceProfile] = [.geforceNow]
+    static let selectable: [ServiceProfile] = [.geforceNow, .figma]
 
     static func profile(id: String) -> ServiceProfile? {
         all.first { $0.id == id }
@@ -65,7 +88,8 @@ struct ServiceProfile {
         sessionPhaseScript: "[...document.querySelectorAll('video')].some(v => v.srcObject && !v.paused) ? 2 : 0",
         tagline: "Any page that asks for pointer lock",
         artwork: ServiceArtwork(symbol: "globe", colors: (.systemGray, .darkGray)),
-        setupTips: []
+        setupTips: [],
+        wording: .neutral
     )
 
     /// The identity in effect, given the user's "use browser identity" choice.

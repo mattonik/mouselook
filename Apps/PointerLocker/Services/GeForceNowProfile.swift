@@ -15,13 +15,7 @@ extension ServiceProfile {
         // version from which GeForce NOW treats Safari as fully supported: no
         // "partially supported" dialog, and Esc goes straight to the game
         // instead of its ⌘+Delete workaround.
-        identity: BrowserIdentity(
-            userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 "
-                + "(KHTML, like Gecko) Version/26.4 Safari/605.1.15",
-            platform: "MacIntel",
-            maxTouchPoints: 0,
-            desktopContentMode: true
-        ),
+        identity: .macSafari,
         // It adds its stream element (#remote-video) when a session starts
         // (queue, loading) and plays a MediaStream in it once the game runs;
         // the library and game pages have none.
@@ -47,6 +41,14 @@ extension ServiceProfile {
                 title: "Sign in with a password or email code",
                 detail: "Passkeys don't work in this app. You'll stay signed in after the first time."
             ),
-        ]
+        ],
+        wording: ServiceWording(
+            mouseNeeded: "Games need a mouse or trackpad to look around. Touch alone won't work.",
+            mouseTest: "Move it and watch the check mark. If it reacts, games can see the mouse too.",
+            keyboardReady: "Ready for WASD.",
+            lockReady: "The mouse can lock to the game.",
+            release: "Hold Esc, press ⌘ + ., or tap the screen with three fingers. To send Esc to the game, press ⌘ + Delete.",
+            start: "Start playing"
+        )
     )
 }
