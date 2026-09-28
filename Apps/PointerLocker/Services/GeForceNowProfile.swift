@@ -1,4 +1,4 @@
-import Foundation
+import UIKit
 
 extension ServiceProfile {
     /// NVIDIA GeForce NOW (play.geforcenow.com).
@@ -28,6 +28,25 @@ extension ServiceProfile {
         sessionPhaseScript: """
             [...document.querySelectorAll('video')].some(v => v.srcObject && !v.paused) ? 2
                 : document.getElementById('remote-video') ? 1 : 0
-            """
+            """,
+        tagline: "NVIDIA's cloud gaming service",
+        artwork: ServiceArtwork(
+            symbol: "cloud.bolt.fill",
+            colors: (UIColor(red: 0.30, green: 0.62, blue: 0.10, alpha: 1), UIColor(red: 0.07, green: 0.16, blue: 0.05, alpha: 1))
+        ),
+        setupTips: [
+            SetupTip(
+                id: "resolution",
+                symbol: "rectangle.on.rectangle",
+                title: "Set the stream to 1920×1080",
+                detail: "In GeForce NOW: Settings ▸ Gameplay ▸ Streaming quality ▸ Custom ▸ Resolution. Some games won't start at the iPad's default size."
+            ),
+            SetupTip(
+                id: "session",
+                symbol: "person.crop.circle.badge.checkmark",
+                title: "Sign in with a password or email code",
+                detail: "Passkeys don't work inside apps. Your sign-in is remembered afterwards."
+            ),
+        ]
     )
 }

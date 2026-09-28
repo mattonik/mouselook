@@ -1,4 +1,4 @@
-import Foundation
+import UIKit
 
 /// What a page should believe it runs on. Streaming services pick their
 /// client by device, so an iPad often gets a touch-only client that never
@@ -32,8 +32,20 @@ struct ServiceProfile {
     /// JavaScript evaluating to the session phase:
     /// 0 none, 1 queued or loading, 2 streaming (see BackgroundSessionKeeper).
     let sessionPhaseScript: String
+    /// One line under the name on the service card.
+    let tagline: String
+    let artwork: ServiceArtwork
+    /// Service-specific items on the Get ready page.
+    let setupTips: [SetupTip]
 
     static let all: [ServiceProfile] = [.geforceNow, .generic]
+
+    /// What onboarding and Settings offer. `generic` stays internal.
+    static let selectable: [ServiceProfile] = [.geforceNow]
+
+    static func profile(id: String) -> ServiceProfile? {
+        all.first { $0.id == id }
+    }
 
     /// The profile the app runs with (Settings.serviceID), GeForce NOW by default.
     static var current: ServiceProfile {
@@ -46,7 +58,10 @@ struct ServiceProfile {
         name: "Other website",
         homeURL: URL(string: "about:blank")!,
         identity: .webKitDefault,
-        sessionPhaseScript: "[...document.querySelectorAll('video')].some(v => v.srcObject && !v.paused) ? 2 : 0"
+        sessionPhaseScript: "[...document.querySelectorAll('video')].some(v => v.srcObject && !v.paused) ? 2 : 0",
+        tagline: "Any page that asks for pointer lock",
+        artwork: ServiceArtwork(symbol: "globe", colors: (.systemGray, .darkGray)),
+        setupTips: []
     )
 
     /// The identity in effect, given the user's "use browser identity" choice.
