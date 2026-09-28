@@ -28,7 +28,7 @@ struct SettingsView: View {
                     Picker("Sensitivity", selection: $sensitivity) {
                         ForEach(Settings.sensitivityPresets, id: \.self) { Text(String(format: "%g×", $0)).tag($0) }
                     }
-                    Toggle("Invert vertical", isOn: $invertY)
+                    Toggle("Invert Y-axis", isOn: $invertY)
                 }
                 Section {
                     Picker("Keep game running in background", selection: $keepAlive) {
@@ -49,7 +49,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Advanced")
                 } footer: {
-                    Text("Changes here reload the page.")
+                    Text("Browser identity makes the service see a desktop browser, which mouse play needs. Changes here reload the page.")
                 }
             }
             .navigationTitle("Settings")

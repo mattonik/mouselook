@@ -26,8 +26,8 @@ struct GetReadyStep: View {
                     ForEach(profile.setupTips) { tip in
                         InfoRow(symbol: tip.symbol, title: tip.title, detail: tip.detail)
                     }
-                    InfoRow(symbol: "escape", title: "Releasing the mouse",
-                            detail: "Press ⌘ + . or tap with three fingers. ⌘ + Delete sends Esc to the game.")
+                    InfoRow(symbol: "escape", title: "Release the mouse",
+                            detail: "Hold Esc, press ⌘ + ., or tap the screen with three fingers. To send Esc to the game, press ⌘ + Delete.")
                 }
                 .padding(.top, 12)
             }
@@ -48,14 +48,14 @@ struct GetReadyStep: View {
     private var mouseTitle: String {
         switch monitor.mouse {
         case .notConnected: "Connect a mouse or trackpad"
-        case .connected: "Mouse connected — move it to test"
-        case .moving: "Mouse working"
+        case .connected: "Mouse connected"
+        case .moving: "Mouse is working"
         }
     }
     private var mouseDetail: String {
         monitor.mouse == .notConnected
             ? "Games need a mouse or trackpad to look around. Touch alone won't work."
-            : "The check mark reacts when the mouse moves, the same way games receive it."
+            : "Move it and watch the check mark. If it reacts, games can see the mouse too."
     }
     private var mouseAccessibility: String {
         switch monitor.mouse {
@@ -68,11 +68,11 @@ struct GetReadyStep: View {
     private var keyboardDetail: String {
         monitor.keyboard == .connected ? "Ready for WASD." : "Some keyboards only show up after a key press."
     }
-    private var displayTitle: String { monitor.display == .fullScreen ? "Full screen" : "The app is in a window" }
+    private var displayTitle: String { monitor.display == .fullScreen ? "Full screen" : "Switch to full screen" }
     private var displayDetail: String {
         monitor.display == .fullScreen
-            ? "Needed to capture the mouse."
-            : "Maximize the window, or turn on Full Screen Apps in Settings ▸ Multitasking & Gestures. The mouse can only be captured in full screen."
+            ? "The mouse can lock to the game."
+            : "To lock the mouse, the app needs the full screen. Maximize the window, or turn on Full Screen Apps in Settings ▸ Multitasking & Gestures."
     }
 }
 

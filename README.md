@@ -89,27 +89,28 @@ open PointerLocker.xcodeproj
    IDs there (or under **Signing & Capabilities** in Xcode) to your own.
 2. Choose the **PointerLocker** scheme and your iPad, then Run. With a free
    Apple ID the app must be re-signed every 7 days.
-3. Pair a mouse or trackpad and a keyboard. Run the app **full screen**: iPadOS
-   grants pointer lock only to a full-screen, frontmost app. If the cursor stays
-   visible, a toast explains why.
+3. On first launch, choose your service and follow the Get ready checklist
+   (mouse, keyboard, full screen, and service tips). iPadOS grants pointer lock
+   only to a full-screen, frontmost app. If the cursor stays visible, a toast
+   explains why.
 
-The **⋯ button** in the bottom-left corner has Back, Reload, Home, Open URL,
-mouse sensitivity, invert vertical, microphone access, how long a game keeps
-running in the background, the "Pretend to be a Mac" toggle, and the debug
+The **⋯ button** in the bottom-left corner has Back, Reload, Home, Open URL and
+**Settings…**: switch service, show the setup guide again, mouse sensitivity,
+invert Y-axis, background keep-alive, microphone, browser identity and the debug
 overlay. It hides while the pointer is locked.
 
 **Switching apps mid-game.** iPadOS suspends an app within seconds of leaving
 it, which drops the stream and ends the session. PointerLocker keeps itself
 running in the background during a session. While you wait in the queue or the
 game loads, it keeps running until the game starts, for up to 30 minutes. While
-a stream plays, it keeps running for 5 minutes by default (⋯ ▸ Keep game running
-in background: Off / 1 / 5 / 15 minutes). It does this by playing silence,
+a stream plays, it keeps running for 5 minutes by default (⋯ ▸ Settings… ▸ Keep game
+running in background: Off / 1 / 5 / 15 minutes). It does this by playing silence,
 since WebKit pauses a quiet stream in the background. When the time is up it
 pauses the stream so the system can suspend the app. GeForce NOW still needs a
 tap on Resume when you come back.
 
 **Volume won't go to zero?** If you allowed the microphone, WebKit uses the
-voice-call audio mode, in which iPadOS keeps a minimum volume. Set ⋯ ▸
+voice-call audio mode, in which iPadOS keeps a minimum volume. Set ⋯ ▸ Settings… ▸
 Microphone ▸ Don't Allow if you don't need voice chat.
 
 **Stream resolution.** On iPad, GeForce NOW defaults to 4:3 sizes such as
@@ -121,11 +122,11 @@ The **MouseLockPrototype** scheme is milestone 1 from the brief. It's a bare
 GCMouse delta viewer. Run it first to confirm that your mouse gives smooth,
 unbounded deltas. Also check the **sign of dY** when you move the mouse up.
 PointerLocker assumes up is positive, as GameController reports it. If vertical
-look comes out inverted, toggle *Invert vertical*.
+look comes out inverted, toggle *Invert Y-axis*.
 
 ### Debugging
 
-Turn on **Debug overlay** in the ⋯ menu. The page reloads, and a small panel in
+Turn on **Debug overlay** in ⋯ ▸ Settings…. The page reloads, and a small panel in
 the bottom right shows:
 
 - **lock**: the page's lock, the system pointer lock, and connected mice

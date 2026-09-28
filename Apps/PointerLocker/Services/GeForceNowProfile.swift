@@ -39,13 +39,13 @@ extension ServiceProfile {
                 id: "resolution",
                 symbol: "rectangle.on.rectangle",
                 title: "Set the stream to 1920×1080",
-                detail: "In GeForce NOW: Settings ▸ Gameplay ▸ Streaming quality ▸ Custom ▸ Resolution. Some games won't start at the iPad's default size."
+                detail: "Some games won't start at the iPad's default size. In GeForce NOW, go to Settings ▸ Gameplay ▸ Streaming quality ▸ Custom ▸ Resolution."
             ),
             SetupTip(
                 id: "session",
                 symbol: "person.crop.circle.badge.checkmark",
                 title: "Sign in with a password or email code",
-                detail: "Passkeys don't work inside apps. Your sign-in is remembered afterwards."
+                detail: "Passkeys don't work in this app. You'll stay signed in after the first time."
             ),
         ]
     )
