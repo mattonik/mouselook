@@ -1,3 +1,4 @@
+import Network
 import UIKit
 import WebKit
 
@@ -17,6 +18,10 @@ final class BrowserViewController: UIViewController {
     let bridge = MouseBridge()
     let menuButton = UIButton(type: .system)
     private let toast = ToastView()
+    private let statusOverlay = StatusOverlayView()
+    private var crashGuard = CrashLoopGuard()
+    private var loadFailure: LoadFailure?
+    private let network = NWPathMonitor()
     private var sessionKeeper: BackgroundSessionKeeper!
     private var hudFeeder: DebugHUDFeeder!
     #if DEBUG
@@ -34,6 +39,7 @@ final class BrowserViewController: UIViewController {
 
     deinit {
         observers.forEach { NotificationCenter.default.removeObserver($0) }
+        network.cancel()
     }
 
     override func viewDidLoad() {
@@ -65,8 +71,12 @@ final class BrowserViewController: UIViewController {
         }
         hudFeeder.update()
 
-        setUpMenuButton()
+        statusOverlay.frame = view.bounds
+        statusOverlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        view.addSubview(statusOverlay)
+        setUpMenuButton() // above the overlay, so Back/Home stay reachable
         toast.install(in: view)
+        watchNetwork()
         setUpUnlockGesture()
         observeSystemState()
 
@@ -136,6 +146,65 @@ final class BrowserViewController: UIViewController {
         })
     }
 
+    // MARK: - Page recovery
+
+    /// A load failed: say why instead of leaving a blank page. When offline,
+    /// retry by itself once the connection is back.
+    private func handleLoadError(_ error: Error) {
+        guard let failure = LoadFailure(error) else { return }
+        setPageLock(false)
+        loadFailure = failure
+        // A DNS or connect error with a working connection means the server is
+        // unreachable, not that we're offline.
+        if failure.isOffline && network.currentPath.status != .satisfied {
+            statusOverlay.show(symbol: "wifi.slash", title: "You're offline",
+                               message: "The page will load again when the connection is back.",
+                               buttonTitle: "Try Again") { [weak self] in self?.retryLoad() }
+        } else {
+            statusOverlay.show(symbol: "exclamationmark.triangle", title: "The page couldn't load",
+                               message: failure.message,
+                               buttonTitle: "Try Again") { [weak self] in self?.retryLoad() }
+        }
+    }
+
+    private func retryLoad() {
+        let url = loadFailure?.url
+        loadFailure = nil
+        statusOverlay.hide()
+        if let url { webView.load(URLRequest(url: url)) } else { webView.reload() }
+    }
+
+    private func watchNetwork() {
+        network.pathUpdateHandler = { [weak self] path in
+            guard path.status == .satisfied else { return }
+            DispatchQueue.main.async {
+                guard let self, self.loadFailure?.isOffline == true, !self.statusOverlay.isHidden else { return }
+                self.retryLoad()
+            }
+        }
+        network.start(queue: .global(qos: .utility))
+    }
+
+    /// The web content process died (a crash, or the system reclaiming
+    /// memory). Reload, unless it keeps happening.
+    private func handleContentProcessTermination() {
+        setPageLock(false)
+        switch crashGuard.recordCrash() {
+        case .reload:
+            toast.show("The page stopped unexpectedly and was reloaded.")
+            webView.reload()
+        case .giveUp:
+            statusOverlay.show(symbol: "exclamationmark.triangle", title: "The page keeps stopping",
+                               message: "This can happen when the iPad runs low on memory. Close other apps, then reload.",
+                               buttonTitle: "Reload") { [weak self] in
+                guard let self else { return }
+                self.crashGuard.reset()
+                self.statusOverlay.hide()
+                self.webView.reload()
+            }
+        }
+    }
+
     // MARK: - Releasing the mouse
 
     private func setUpUnlockGesture() {
@@ -200,13 +269,22 @@ extension BrowserViewController: WKNavigationDelegate {
     }
 
     func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
-        // A new document starts unlocked.
+        // A new document starts unlocked, and has loaded: nothing to report.
         setPageLock(false)
+        loadFailure = nil
+        statusOverlay.hide()
+    }
+
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        handleLoadError(error)
+    }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        handleLoadError(error)
     }
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
-        setPageLock(false)
-        webView.reload()
+        handleContentProcessTermination()
     }
 }
 
