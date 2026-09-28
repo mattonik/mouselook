@@ -2,11 +2,12 @@ import os
 import UIKit
 import WebKit
 
-/// Keeps a GeForce NOW session alive across an app switch (see
+/// Keeps a streaming session alive across an app switch (see
 /// BackgroundKeepAlive for how): while queued or loading until the game
 /// starts (up to 30 minutes), and while streaming for the chosen time, then
 /// pauses all media so the system can suspend the app as usual. Nothing
-/// happens outside a session, or when the setting is Off.
+/// happens outside a session, or when the setting is Off. The active
+/// ServiceProfile's sessionPhaseScript tells the phases apart.
 @MainActor
 final class BackgroundSessionKeeper {
     enum StreamPhase: Int {
@@ -14,14 +15,6 @@ final class BackgroundSessionKeeper {
         case starting = 1 // in the queue or loading the game
         case playing = 2  // a stream is playing
     }
-
-    /// GeForce NOW adds its stream element (#remote-video) when a session
-    /// starts (queue, loading) and plays a MediaStream in it once the game
-    /// runs; the library and game pages have none.
-    static let streamPhaseScript = """
-        [...document.querySelectorAll('video')].some(v => v.srcObject && !v.paused) ? 2
-            : document.getElementById('remote-video') ? 1 : 0
-        """
 
     static let startingLimit: TimeInterval = 30 * 60
     static let pollInterval: TimeInterval = 5
@@ -59,7 +52,7 @@ final class BackgroundSessionKeeper {
 
     private func streamPhase(_ completion: @escaping (StreamPhase) -> Void) {
         guard let webView else { return completion(.none) }
-        webView.evaluateJavaScript(Self.streamPhaseScript) { [log] result, error in
+        webView.evaluateJavaScript(ServiceProfile.current.sessionPhaseScript) { [log] result, error in
             if let error { log.error("Stream phase check failed: \(error.localizedDescription)") }
             completion(StreamPhase(rawValue: result as? Int ?? 0) ?? .none)
         }

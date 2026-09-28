@@ -23,10 +23,9 @@
   if (window.__pointerLocker) return;
 
   const HOLD_ESC_TO_UNLOCK_MS = 1000;
-  const config = Object.assign(
-    { spoofDesktop: true },
-    window.__pointerLockerConfig || {}
-  );
+  // Set by the app from the active service profile (ServiceProfile.swift).
+  //   identity: { platform?, maxTouchPoints? }  what the page should see
+  const config = Object.assign({ identity: null }, window.__pointerLockerConfig || {});
 
   const post = (message) => {
     try {
@@ -37,30 +36,35 @@
   };
 
   // ---------------------------------------------------------------------
-  // Desktop spoofing. GeForce NOW routes iPads (detected via touch points
-  // even with a Mac user agent) to its touch/PWA flow, which never asks for
-  // pointer lock. Pretending to be a pointer-only Mac gets the desktop client.
+  // Browser identity. Services pick their client by device: GeForce NOW sends
+  // an iPad (touch points, "iPad" platform) to its touch/PWA flow, which never
+  // asks for pointer lock. The profile says what to report instead; the user
+  // agent itself is set natively.
   // ---------------------------------------------------------------------
-  if (config.spoofDesktop) {
-    try {
-      Object.defineProperty(Navigator.prototype, "maxTouchPoints", {
-        configurable: true,
-        get: () => 0,
-      });
-    } catch (_) {}
-    spoofWorkers();
+  const identity = config.identity;
+  if (identity) {
+    const override = (proto, name, value) => {
+      try {
+        Object.defineProperty(proto, name, { configurable: true, get: () => value });
+      } catch (_) {}
+    };
+    if (identity.maxTouchPoints != null) override(Navigator.prototype, "maxTouchPoints", identity.maxTouchPoints);
+    if (identity.platform != null) {
+      override(Navigator.prototype, "platform", identity.platform);
+      spoofWorkers(identity.platform);
+    }
   }
 
-  // WKWebView's desktop mode reports "MacIntel" on the main thread but still
-  // "iPad" inside workers, and user scripts don't run there. GeForce NOW reads
-  // navigator.platform from a worker (built from a Blob URL it revokes at once)
-  // and shows its iPad "Add to Home Screen" wall. So prepend a prelude to every
-  // worker script. Blob URLs are resolved to their Blob when created, which
-  // keeps this synchronous and immune to the immediate revoke.
-  function spoofWorkers() {
+  // User scripts don't run inside workers, and WKWebView reports "iPad" there
+  // even in desktop mode. GeForce NOW reads navigator.platform from a worker
+  // (built from a Blob URL it revokes at once) and shows its iPad "Add to Home
+  // Screen" wall. So prepend a prelude to every worker script. Blob URLs are
+  // resolved to their Blob when created, which keeps this synchronous and
+  // immune to the immediate revoke.
+  function spoofWorkers(platform) {
     const prelude =
       "try{Object.defineProperty(WorkerNavigator.prototype,'platform'," +
-      "{configurable:true,get:()=>'MacIntel'})}catch(_){}\n";
+      `{configurable:true,get:()=>${JSON.stringify(platform)}})}catch(_){}\n`;
     const blobs = new Map();
     const createObjectURL = URL.createObjectURL;
     const revokeObjectURL = URL.revokeObjectURL;
