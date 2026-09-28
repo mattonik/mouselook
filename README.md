@@ -120,6 +120,12 @@ Microphone ▸ Don't Allow if you don't need voice chat.
 or "not available". Set GeForce NOW ▸ Settings ▸ Gameplay ▸ Streaming quality ▸
 Custom ▸ Resolution to 1920×1080. The setting is saved with your account.
 
+**Figma.** Pick Figma in onboarding (or ⋯ ▸ Settings… ▸ Switch service…) to
+use its design editor. Dragging a number's label scrubs the value without
+stopping at the screen edge, and Space + drag pans the canvas. The Figma profile
+presents as Chrome on a Mac, not Safari: Figma turns pointer lock off for
+scrubbing in Safari. Sign in with email and password.
+
 The **MouseLockPrototype** scheme is milestone 1 from the brief. It's a bare
 GCMouse delta viewer. Run it first to confirm that your mouse gives smooth,
 unbounded deltas. Also check the **sign of dY** when you move the mouse up.
