@@ -35,6 +35,21 @@
     }
   };
 
+  // WebKit on iPadOS 26 has no pointer lock API. If a future WebKit has one,
+  // try it first and fall back to ours when it refuses or never locks.
+  const NATIVE_FALLBACK_MS = 250;
+  const native = {
+    request: Element.prototype.requestPointerLock,
+    exit: Document.prototype.exitPointerLock,
+    element: Object.getOwnPropertyDescriptor(Document.prototype, "pointerLockElement")?.get,
+  };
+  let nativeUsable = typeof native.request === "function";
+  let nativeLocked = false;
+  let nativePending = null; // { el, promise } while an attempt runs
+  const nativeElement = () => {
+    try { return native.element ? native.element.call(document) : null; } catch (_) { return null; }
+  };
+
   // ---------------------------------------------------------------------
   // Browser identity. Services pick their client by device: GeForce NOW sends
   // an iPad (touch points, "iPad" platform) to its touch/PWA flow, which never
@@ -132,8 +147,11 @@
     { capture: true, passive: true }
   );
 
+  const ownEvents = new WeakSet(); // events the polyfill itself dispatches
   const dispatchDocEvent = (type) => {
-    document.dispatchEvent(new Event(type, { bubbles: true }));
+    const e = new Event(type, { bubbles: true });
+    ownEvents.add(e);
+    document.dispatchEvent(e);
   };
 
   const setLocked = (el) => {
@@ -148,7 +166,7 @@
     }
     lockedElement = el;
     if (el !== previous) {
-      post({ type: el ? "lock" : "unlock" });
+      post({ type: el ? "lock" : "unlock", mode: "polyfill" });
       // Real browsers fire this as a task after the state change.
       setTimeout(() => dispatchDocEvent("pointerlockchange"), 0);
     }
@@ -157,7 +175,7 @@
   // ---------------------------------------------------------------------
   // API surface
   // ---------------------------------------------------------------------
-  function requestPointerLock(_options) {
+  function requestPointerLock(options) {
     const el = this;
     if (!(el instanceof Element) || !el.isConnected) {
       setTimeout(() => dispatchDocEvent("pointerlockerror"), 0);
@@ -165,12 +183,77 @@
         new DOMException("Element is not in a document", "WrongDocumentError")
       );
     }
+    if (nativePending && nativePending.el === el) return nativePending.promise;
+    if (nativeUsable) return requestNative(el, options);
     setLocked(el);
     return Promise.resolve();
   }
 
-  function exitPointerLock() {
+  function requestNative(el, options) {
+    const promise = new Promise((resolve, reject) => {
+      let done = false;
+      const finish = (ok) => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        window.removeEventListener("pointerlockchange", onChange, true);
+        window.removeEventListener("pointerlockerror", onError, true);
+        nativePending = null;
+        if (!el.isConnected) {
+          reject(new DOMException("Element is not in a document", "WrongDocumentError"));
+          return;
+        }
+        if (ok) {
+          nativeLocked = true;
+          post({ type: "lock", mode: "native" });
+        } else {
+          nativeUsable = false; // this page uses the polyfill from now on
+          // WebKit may still fire its pointerlockerror after rejecting; the
+          // page asked for a lock and got one, so it mustn't see that error.
+          swallowNativeErrorsUntil = performance.now() + NATIVE_FALLBACK_MS;
+          setLocked(el);
+        }
+        resolve();
+      };
+      const onChange = () => { if (nativeElement() === el) finish(true); };
+      const onError = (e) => { e.stopImmediatePropagation(); finish(false); };
+      window.addEventListener("pointerlockchange", onChange, true);
+      window.addEventListener("pointerlockerror", onError, true);
+      const timer = setTimeout(() => finish(nativeElement() === el), NATIVE_FALLBACK_MS);
+      try {
+        const p = native.request.call(el, options);
+        if (p && typeof p.then === "function") {
+          p.then(() => { if (nativeElement() === el) finish(true); }, () => finish(false));
+        }
+      } catch (_) {
+        finish(false);
+      }
+    });
+    nativePending = { el, promise };
+    return promise;
+  }
+
+  let swallowNativeErrorsUntil = 0;
+  window.addEventListener("pointerlockerror", (e) => {
+    if (!ownEvents.has(e) && performance.now() < swallowNativeErrorsUntil) e.stopImmediatePropagation();
+  }, true);
+
+  // The page learns about native lock changes from WebKit's own events; the
+  // app hears it here.
+  document.addEventListener("pointerlockchange", () => {
+    if (nativeLocked && !nativeElement()) {
+      nativeLocked = false;
+      post({ type: "unlock", mode: "native" });
+    }
+  }, true);
+
+  const unlockAll = () => {
+    if (nativeLocked && native.exit) native.exit.call(document);
     setLocked(null);
+  };
+
+  function exitPointerLock() {
+    unlockAll();
   }
 
   const defineMethod = (proto, name, fn) => {
@@ -189,6 +272,10 @@
   const pointerLockElementGetter = {
     configurable: true,
     get() {
+      if (nativeLocked) {
+        const n = nativeElement();
+        if (n) return n.ownerDocument === this ? n : null;
+      }
       if (!lockedElement || !lockedElement.isConnected) return null;
       return lockedElement.ownerDocument === this ? lockedElement : null;
     },
@@ -313,7 +400,7 @@
       if (e.key !== "Escape" || !lockedElement || e.repeat || escTimer) return;
       escTimer = setTimeout(() => {
         escTimer = null;
-        setLocked(null);
+        unlockAll();
       }, HOLD_ESC_TO_UNLOCK_MS);
     },
     true
@@ -504,10 +591,10 @@
       }
     },
     forceUnlock() {
-      setLocked(null);
+      unlockAll();
     },
     get isLocked() {
-      return !!lockedElement;
+      return !!lockedElement || nativeLocked;
     },
   };
   Object.defineProperty(window, "__pointerLocker", { value: Object.freeze(api) });
