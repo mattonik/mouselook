@@ -29,7 +29,7 @@ final class BackgroundSessionKeeper {
     }
 
     func didEnterBackground() {
-        streamPhase { [weak self] phase in
+        currentPhase { [weak self] phase in
             let state = UIApplication.shared.applicationState
             self?.log.info("Entered background: stream phase \(phase.rawValue), app state \(state.rawValue)")
             guard let self, state == .background else { return }
@@ -50,7 +50,8 @@ final class BackgroundSessionKeeper {
         keepAlive.stop()
     }
 
-    private func streamPhase(_ completion: @escaping (StreamPhase) -> Void) {
+    /// Which phase the page's session is in right now.
+    func currentPhase(_ completion: @escaping (StreamPhase) -> Void) {
         guard let webView else { return completion(.none) }
         webView.evaluateJavaScript(ServiceProfile.current.sessionPhaseScript) { [log] result, error in
             if let error { log.error("Stream phase check failed: \(error.localizedDescription)") }
@@ -71,7 +72,7 @@ final class BackgroundSessionKeeper {
         stopWatchingStream()
         streamWatch = Timer.scheduledTimer(withTimeInterval: Self.pollInterval, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
-                self?.streamPhase { [weak self] phase in
+                self?.currentPhase { [weak self] phase in
                     guard let self, UIApplication.shared.applicationState == .background else { return }
                     switch phase {
                     case .starting: break

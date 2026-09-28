@@ -1,0 +1,109 @@
+import UIKit
+
+/// The window's root: onboarding until a service is chosen, then the browser
+/// for it. iPadOS asks the root for pointer lock (and the home indicator,
+/// status bar and edge gestures), so those are forwarded to the browser.
+final class RootViewController: UIViewController {
+    private(set) var browser: BrowserViewController?
+    private var onboarding: OnboardingHostingController?
+
+    override var childViewControllerForPointerLock: UIViewController? { browser }
+    override var childForHomeIndicatorAutoHidden: UIViewController? { browser }
+    override var childForStatusBarHidden: UIViewController? { browser ?? onboarding }
+    override var childForScreenEdgesDeferringSystemGestures: UIViewController? { browser }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .black
+        switch LaunchRoute.resolve(serviceID: Settings.serviceID) {
+        case .onboarding: showOnboarding(start: .welcome, cancellable: false)
+        case .browser: showBrowser()
+        }
+    }
+
+    // MARK: Children
+
+    private func embed(_ child: UIViewController) {
+        addChild(child)
+        child.view.frame = view.bounds
+        child.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        view.addSubview(child.view)
+        child.didMove(toParent: self)
+    }
+
+    private func remove(_ child: UIViewController?) {
+        guard let child else { return }
+        child.willMove(toParent: nil)
+        child.view.removeFromSuperview()
+        child.removeFromParent()
+    }
+
+    private func showBrowser() {
+        browser?.tearDown()
+        remove(browser)
+        remove(onboarding)
+        onboarding = nil
+        let browser = BrowserViewController()
+        browser.root = self
+        self.browser = browser
+        embed(browser)
+        refreshSystemPreferences()
+    }
+
+    private func refreshSystemPreferences() {
+        setNeedsUpdateOfPrefersPointerLocked()
+        setNeedsUpdateOfHomeIndicatorAutoHidden()
+        setNeedsStatusBarAppearanceUpdate()
+        setNeedsUpdateOfScreenEdgesDeferringSystemGestures()
+    }
+
+    // MARK: Onboarding
+
+    /// First launch embeds onboarding; from Settings it's presented over the
+    /// browser and can be cancelled.
+    func showOnboarding(start: OnboardingFlow.Start, cancellable: Bool) {
+        let controller = OnboardingHostingController(
+            start: start,
+            onFinish: { [weak self] profile in self?.finishOnboarding(with: profile) },
+            onCancel: cancellable ? { [weak self] in self?.dismiss(animated: true) } : nil
+        )
+        if browser == nil {
+            onboarding = controller
+            embed(controller)
+        } else {
+            controller.modalPresentationStyle = .fullScreen
+            present(controller, animated: true)
+        }
+    }
+
+    private func finishOnboarding(with profile: ServiceProfile) {
+        let rebuild = browser == nil || ServiceSwitch.needsRebuild(current: Settings.serviceID, chosen: profile.id)
+        OnboardingCompletion.finish(with: profile)
+        let proceed = { [weak self] in if rebuild { self?.showBrowser() } }
+        if presentedViewController != nil { dismiss(animated: true, completion: proceed) } else { proceed() }
+    }
+
+    // MARK: From Settings
+
+    /// Settings ▸ Switch service…: warns if a game is running, then the chooser.
+    func switchService() {
+        guard let browser else { return showOnboarding(start: .chooser, cancellable: true) }
+        browser.sessionPhase { [weak self] phase in
+            guard let self else { return }
+            guard phase != .none else { return self.showOnboarding(start: .chooser, cancellable: true) }
+            let alert = UIAlertController(title: "Switch service?",
+                                          message: "Switching ends your current game session.",
+                                          preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+            alert.addAction(UIAlertAction(title: "Switch", style: .destructive) { _ in
+                self.showOnboarding(start: .chooser, cancellable: true)
+            })
+            self.present(alert, animated: true)
+        }
+    }
+
+    /// Settings ▸ Show setup guide: Get ready for the current service.
+    func showSetupGuide() {
+        showOnboarding(start: .getReady(ServiceProfile.current), cancellable: true)
+    }
+}
