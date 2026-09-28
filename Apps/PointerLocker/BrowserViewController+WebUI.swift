@@ -16,14 +16,14 @@ extension BrowserViewController: WKUIDelegate {
 
     func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String,
                  initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping () -> Void) {
-        let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+        let alert = UIAlertController(title: Self.dialogTitle(frame), message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default) { _ in completionHandler() })
         presentDialog(alert, orElse: completionHandler)
     }
 
     func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String,
                  initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (Bool) -> Void) {
-        let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+        let alert = UIAlertController(title: Self.dialogTitle(frame), message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in completionHandler(false) })
         alert.addAction(UIAlertAction(title: "OK", style: .default) { _ in completionHandler(true) })
         presentDialog(alert, orElse: { completionHandler(false) })
@@ -41,7 +41,7 @@ extension BrowserViewController: WKUIDelegate {
         case .ask:
             let alert = UIAlertController(
                 title: "Allow \(origin.host) to use the microphone?",
-                message: "Used for in-game voice chat. You can change this later under ⋯ ▸ Microphone.",
+                message: "For voice chat in games. You can change this in ⋯ ▸ Settings… ▸ Microphone.",
                 preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "Don't Allow", style: .cancel) { _ in
                 Settings.microphone = .deny
@@ -53,6 +53,12 @@ extension BrowserViewController: WKUIDelegate {
             })
             presentDialog(alert, orElse: { decisionHandler(.prompt) })
         }
+    }
+
+    /// Names the site, so a page's dialog isn't mistaken for the app's.
+    private static func dialogTitle(_ frame: WKFrameInfo) -> String? {
+        let host = frame.securityOrigin.host
+        return host.isEmpty ? nil : host
     }
 
     /// Dialogs need the pointer back; if something is already presented, give

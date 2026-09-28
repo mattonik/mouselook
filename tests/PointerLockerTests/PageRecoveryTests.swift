@@ -51,6 +51,23 @@ final class LoadFailureTests: XCTestCase {
         XCTAssertEqual(failure?.message, "Bad server response")
     }
 
+    func testNoticeSaysOfflineOnlyWithoutAConnection() {
+        let url = URL(string: "https://play.geforcenow.com/")!
+        let failure = LoadFailure(NSError(domain: NSURLErrorDomain, code: NSURLErrorCannotFindHost,
+                                          userInfo: [NSURLErrorFailingURLErrorKey: url]))!
+        XCTAssertEqual(failure.notice(online: false).title, "You're offline")
+        XCTAssertEqual(failure.notice(online: true).title, "Can't reach play.geforcenow.com")
+        XCTAssertEqual(LoadFailure(urlError(NSURLErrorTimedOut))!.notice(online: true).title, "Can't reach the site")
+    }
+
+    func testNoticeForOtherErrorsCarriesTheSystemMessage() {
+        let error = NSError(domain: NSURLErrorDomain, code: NSURLErrorBadServerResponse,
+                            userInfo: [NSLocalizedDescriptionKey: "Bad server response"])
+        let notice = LoadFailure(error)!.notice(online: true)
+        XCTAssertEqual(notice.title, "The page couldn't load")
+        XCTAssertEqual(notice.message, "Bad server response")
+    }
+
     func testRemembersTheURLThatFailed() {
         let url = URL(string: "https://play.geforcenow.com/mall/")!
         let error = NSError(domain: NSURLErrorDomain, code: NSURLErrorNotConnectedToInternet,

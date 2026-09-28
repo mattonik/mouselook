@@ -172,7 +172,7 @@ final class BrowserViewController: UIViewController {
             // UIKit only honours pointer lock for a full-screen, frontmost scene.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) { [weak self] in
                 guard let self, self.pageWantsLock, !self.isSystemPointerLocked else { return }
-                self.toast.show("System pointer not locked — run the app full screen (no Split View / Stage Manager window). Mouse deltas still work.")
+                self.toast.show("The pointer isn't locked, so it can leave the game. Make the app full screen to lock it.")
             }
         }
     }
@@ -216,17 +216,9 @@ final class BrowserViewController: UIViewController {
         guard let failure = LoadFailure(error) else { return }
         setPageLock(false)
         loadFailure = failure
-        // A DNS or connect error with a working connection means the server is
-        // unreachable, not that we're offline.
-        if failure.isOffline && network.currentPath.status != .satisfied {
-            statusOverlay.show(symbol: "wifi.slash", title: "You're offline",
-                               message: "The page will load again when the connection is back.",
-                               buttonTitle: "Try Again") { [weak self] in self?.retryLoad() }
-        } else {
-            statusOverlay.show(symbol: "exclamationmark.triangle", title: "The page couldn't load",
-                               message: failure.message,
-                               buttonTitle: "Try Again") { [weak self] in self?.retryLoad() }
-        }
+        let notice = failure.notice(online: network.currentPath.status == .satisfied)
+        statusOverlay.show(symbol: notice.symbol, title: notice.title, message: notice.message,
+                           buttonTitle: "Try Again") { [weak self] in self?.retryLoad() }
     }
 
     private func retryLoad() {

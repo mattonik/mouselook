@@ -50,9 +50,9 @@ targets:
           - UIInterfaceOrientationLandscapeRight
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationPortraitUpsideDown
-        NSMicrophoneUsageDescription: Websites such as GeForce NOW can use the microphone for in-game voice chat.
-        # Keeps a stream alive for a while in the background (⋯ ▸ Keep game
-        # running in background); the app pauses media when that time is up.
+        NSMicrophoneUsageDescription: For voice chat in games. The app asks before a site can use it.
+        # Keeps a stream alive for a while in the background (⋯ ▸ Settings… ▸
+        # Keep game running in background); the app pauses media when that time is up.
         UIBackgroundModes: [audio]
         # Only used by Debug builds (DebugBridge) to reach a developer Mac.
         PLDebugBridgeURL: $(DEBUG_BRIDGE_URL)

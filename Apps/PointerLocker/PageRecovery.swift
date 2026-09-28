@@ -49,4 +49,25 @@ struct LoadFailure {
         message = error.localizedDescription
         url = error.userInfo[NSURLErrorFailingURLErrorKey] as? URL
     }
+
+    /// What the status overlay says. `online`: whether the iPad has a network
+    /// connection; a connection error with one means the site is unreachable,
+    /// not that the iPad is offline.
+    func notice(online: Bool) -> LoadFailureNotice {
+        if isOffline && !online {
+            return LoadFailureNotice(symbol: "wifi.slash", title: "You're offline",
+                                     message: "The page will load by itself when you're back online.")
+        }
+        if isOffline {
+            return LoadFailureNotice(symbol: "exclamationmark.triangle", title: "Can't reach \(url?.host() ?? "the site")",
+                                     message: "It may be down, or the address may be wrong. Try again in a moment.")
+        }
+        return LoadFailureNotice(symbol: "exclamationmark.triangle", title: "The page couldn't load", message: message)
+    }
+}
+
+struct LoadFailureNotice: Equatable {
+    let symbol: String
+    let title: String
+    let message: String
 }
