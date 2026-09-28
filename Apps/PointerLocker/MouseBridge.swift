@@ -1,7 +1,7 @@
 import GameController
 import QuartzCore
 
-/// Reads raw relative input from GCMouse and turns it into
+/// Reads raw relative input from GCMouse (via MouseEventHub) and turns it into
 /// `window.__pointerLocker.batch([...])` calls for the page.
 ///
 /// Movement is accumulated and flushed once per display frame (one
@@ -52,18 +52,21 @@ final class MouseBridge {
     private var inFlightSince: CFTimeInterval?
     private var generation = 0
     private var displayLink: CADisplayLink?
-    private var observers: [NSObjectProtocol] = []
+    private let hub: MouseEventHub
+    private var hubToken: MouseEventHub.Token?
 
-    init(usesDisplayLink: Bool = true) {
-        let center = NotificationCenter.default
-        observers.append(center.addObserver(forName: .GCMouseDidConnect, object: nil, queue: .main) { [weak self] note in
-            guard let mouse = note.object as? GCMouse else { return }
-            MainActor.assumeIsolated { self?.attach(mouse) }
-        })
-        observers.append(center.addObserver(forName: .GCMouseDidDisconnect, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.mouseDisconnected() }
-        })
-        GCMouse.mice().forEach(attach)
+    init(usesDisplayLink: Bool = true, hub: MouseEventHub = .shared) {
+        self.hub = hub
+        hubToken = hub.addListener { [weak self] event in
+            guard let self else { return }
+            switch event {
+            case .moved(let dx, let dy): self.handleMove(dx: dx, dy: dy)
+            case .button(let index, let pressed): self.handleButton(index, pressed: pressed)
+            case .scrolled(let x, let y): self.handleScroll(x: x, y: y)
+            case .disconnected: self.mouseDisconnected()
+            case .connected: break
+            }
+        }
 
         guard usesDisplayLink else { return }
         let link = CADisplayLink(target: DisplayLinkTarget { [weak self] in
@@ -78,38 +81,8 @@ final class MouseBridge {
     func invalidate() {
         displayLink?.invalidate()
         displayLink = nil
-        observers.forEach { NotificationCenter.default.removeObserver($0) }
-        observers.removeAll()
-    }
-
-    // MARK: - GCMouse
-
-    private func attach(_ mouse: GCMouse) {
-        guard let input = mouse.mouseInput else { return }
-        // GCDevice handlers are delivered on `handlerQueue`, main by default.
-        mouse.handlerQueue = .main
-
-        input.mouseMovedHandler = { [weak self] _, dx, dy in
-            MainActor.assumeIsolated { self?.handleMove(dx: dx, dy: dy) }
-        }
-        input.leftButton.pressedChangedHandler = { [weak self] _, _, pressed in
-            MainActor.assumeIsolated { self?.handleButton(0, pressed: pressed) }
-        }
-        input.middleButton?.pressedChangedHandler = { [weak self] _, _, pressed in
-            MainActor.assumeIsolated { self?.handleButton(1, pressed: pressed) }
-        }
-        input.rightButton?.pressedChangedHandler = { [weak self] _, _, pressed in
-            MainActor.assumeIsolated { self?.handleButton(2, pressed: pressed) }
-        }
-        // Side buttons (back, forward) are DOM buttons 3 and 4.
-        for (offset, aux) in (input.auxiliaryButtons ?? []).prefix(2).enumerated() {
-            aux.pressedChangedHandler = { [weak self] _, _, pressed in
-                MainActor.assumeIsolated { self?.handleButton(3 + offset, pressed: pressed) }
-            }
-        }
-        input.scroll.valueChangedHandler = { [weak self] _, x, y in
-            MainActor.assumeIsolated { self?.handleScroll(x: x, y: y) }
-        }
+        if let hubToken { hub.remove(hubToken) }
+        hubToken = nil
     }
 
     /// A mouse went away (unplugged, out of battery): release whatever it was
