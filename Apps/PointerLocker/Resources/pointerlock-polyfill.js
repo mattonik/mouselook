@@ -285,6 +285,26 @@
     if (document.visibilityState === "hidden") releaseKeys();
   });
 
+  // iPadOS WebKit leaves metaKey/ctrlKey/altKey/shiftKey false on wheel
+  // events even while the key is held (so ⌘ + scroll pans instead of
+  // zooming), and our synthetic events never set them. Mouse, pointer and
+  // wheel events report a modifier as held if the keyboard says it is.
+  const heldModifier = (key) => {
+    for (const k of heldKeys.values()) if (k.key === key) return true;
+    return false;
+  };
+  for (const [prop, key] of [["metaKey", "Meta"], ["ctrlKey", "Control"], ["altKey", "Alt"], ["shiftKey", "Shift"]]) {
+    const native = Object.getOwnPropertyDescriptor(MouseEvent.prototype, prop);
+    if (!native || !native.get) continue;
+    Object.defineProperty(MouseEvent.prototype, prop, {
+      configurable: true,
+      enumerable: native.enumerable,
+      get() {
+        return native.get.call(this) || heldModifier(key);
+      },
+    });
+  }
+
   // Hold Escape to release the lock (same gesture GeForce NOW uses). A tap
   // on Escape still reaches the page so in-game menus keep working.
   window.addEventListener(
