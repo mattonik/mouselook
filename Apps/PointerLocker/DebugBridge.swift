@@ -17,6 +17,7 @@ final class DebugBridge {
     private weak var webView: WKWebView?
     private let base: URL
     private let token: String
+    private var stopped = false
 
     init?(webView: WKWebView) {
         let info = Bundle.main.infoDictionary ?? [:]
@@ -41,7 +42,14 @@ final class DebugBridge {
         poll()
     }
 
+    /// When the browser is replaced: stop polling, so the old bridge doesn't
+    /// take scripts meant for the new one (its pending poll keeps it alive).
+    func stop() {
+        stopped = true
+    }
+
     private func poll() {
+        guard !stopped else { return }
         var request = makeRequest("next")
         request.timeoutInterval = 60
         URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
