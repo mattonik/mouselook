@@ -10,9 +10,11 @@ struct WelcomeStep: View {
         GeometryReader { proxy in
             ScrollView {
                 VStack(spacing: 24) {
-                    Image(systemName: "cursorarrow.rays")
-                        .font(.system(size: 64, weight: .light))
-                        .foregroundStyle(.tint)
+                    // The app icon itself, so Welcome matches the home screen.
+                    Image("WelcomeIcon")
+                        .resizable()
+                        .frame(width: 96, height: 96)
+                        .clipShape(.rect(cornerRadius: 22, style: .continuous))
                         .accessibilityHidden(true)
                     Text("Mouselook")
                         .font(.largeTitle.bold())
