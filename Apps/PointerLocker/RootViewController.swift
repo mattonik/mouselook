@@ -7,7 +7,11 @@ final class RootViewController: UIViewController {
     private(set) var browser: BrowserViewController?
     private var onboarding: OnboardingHostingController?
 
-    override var childViewControllerForPointerLock: UIViewController? { browser }
+    /// Not while onboarding covers the browser: the game underneath can't
+    /// take the pointer from it.
+    override var childViewControllerForPointerLock: UIViewController? {
+        presentedViewController is OnboardingHostingController ? nil : browser
+    }
     override var childForHomeIndicatorAutoHidden: UIViewController? { browser }
     override var childForStatusBarHidden: UIViewController? { browser ?? onboarding }
     override var childForScreenEdgesDeferringSystemGestures: UIViewController? { browser }
@@ -65,14 +69,20 @@ final class RootViewController: UIViewController {
         let controller = OnboardingHostingController(
             start: start,
             onFinish: { [weak self] profile in self?.finishOnboarding(with: profile) },
-            onCancel: cancellable ? { [weak self] in self?.dismiss(animated: true) } : nil
+            onCancel: cancellable ? { [weak self] in
+                self?.dismiss(animated: true) { self?.setNeedsUpdateOfPrefersPointerLocked() }
+            } : nil
         )
         if browser == nil {
             onboarding = controller
             embed(controller)
         } else {
-            controller.modalPresentationStyle = .fullScreen
+            // Over, not full screen: the browser stays in the window, so a game
+            // underneath keeps running instead of going hidden.
+            controller.modalPresentationStyle = .overFullScreen
+            browser?.forceUnlock()
             present(controller, animated: true)
+            setNeedsUpdateOfPrefersPointerLocked()
         }
     }
 
@@ -80,7 +90,9 @@ final class RootViewController: UIViewController {
         let rebuild = browser == nil || ServiceSwitch.needsRebuild(current: Settings.serviceID, chosen: profile.id)
         let finish = { [weak self] in
             OnboardingCompletion.finish(with: profile)
-            let proceed = { [weak self] in if rebuild { self?.showBrowser() } }
+            let proceed: () -> Void = { [weak self] in
+                if rebuild { self?.showBrowser() } else { self?.setNeedsUpdateOfPrefersPointerLocked() }
+            }
             if self?.presentedViewController != nil { self?.dismiss(animated: true, completion: proceed) } else { proceed() }
         }
         guard rebuild, let browser else { return finish() }
