@@ -193,6 +193,36 @@ await test("trusted events flow again after unlock", async () => {
   assert.ok(types.includes("click"), types.join(","));
 });
 
+// Figma's scrub (and games that lock on mousedown) lock while the real button
+// is still down. The release then arrives through GCMouse, and must end the
+// drag: before, the polyfill thought no button was held and dropped it, so
+// Figma kept scrubbing until a second click.
+await test("a lock taken during a real press gets the release as pointerup", async () => {
+  await page.evaluate(() => {
+    const c = document.getElementById("c");
+    c.addEventListener("pointerdown", () => c.requestPointerLock(), { once: true });
+  });
+  await page.mouse.move(40, 40);
+  await page.mouse.down();
+  await tick();
+  assert.equal(await page.evaluate(() => document.pointerLockElement?.id), "c");
+  await page.evaluate(() => { window.__log = []; window.__pointerLocker.batch([["b", 0, false]]); });
+  const log = await page.evaluate(() => window.__log.map((e) => [e.t, e.button, e.buttons]));
+  assert.deepEqual(log, [["pointerup", 0, 0], ["mouseup", 0, 0], ["click", 0, 0]]);
+  await page.evaluate(() => window.__pointerLocker.forceUnlock());
+  await page.mouse.up();
+});
+
+await test("a lock after the real button came back up starts with none held", async () => {
+  await page.mouse.down();
+  await page.mouse.up();
+  await page.evaluate(() => document.getElementById("c").requestPointerLock());
+  await page.evaluate(() => { window.__log = []; window.__pointerLocker.batch([["b", 0, true], ["b", 0, false]]); });
+  const types = await page.evaluate(() => window.__log.map((e) => e.t));
+  assert.deepEqual(types, ["pointerdown", "mousedown", "pointerup", "mouseup", "click"]);
+  await page.evaluate(() => window.__pointerLocker.forceUnlock());
+});
+
 await test("forceUnlock and exitPointerLock", async () => {
   await page.evaluate(() => {
     document.body.insertAdjacentHTML("beforeend", `<canvas id="fresh"></canvas>`);
