@@ -213,6 +213,30 @@ await test("a lock taken during a real press gets the release as pointerup", asy
   await page.mouse.up();
 });
 
+// The release reaches the page twice on the iPad: GCMouse's (as pointerup,
+// which ends the lock) and then WebKit's real one, no longer swallowed once
+// the page has unlocked. A desktop browser delivers one release and one click.
+await test("the real release after an early unlock is not delivered a second time", async () => {
+  await page.evaluate(() => {
+    const c = document.getElementById("c");
+    c.addEventListener("pointerdown", () => c.requestPointerLock(), { once: true });
+    c.addEventListener("pointerup", () => document.exitPointerLock(), { once: true });
+  });
+  await page.mouse.move(40, 40);
+  await page.mouse.down();
+  await tick();
+  await page.evaluate(() => { window.__log = []; window.__pointerLocker.batch([["b", 0, false]]); });
+  assert.equal(await page.evaluate(() => document.pointerLockElement), null);
+  await page.mouse.up();
+  const log = await page.evaluate(() => window.__log.map((e) => e.t + (e.trusted ? "" : "*")));
+  assert.deepEqual(log, ["pointerup*", "mouseup*", "click*"]);
+  // Only that release: the next real click goes through.
+  await page.evaluate(() => { window.__log = []; });
+  await page.mouse.click(40, 40);
+  const next = await page.evaluate(() => window.__log.map((e) => e.t + (e.trusted ? "" : "*")));
+  assert.ok(next.includes("click"), next.join(","));
+});
+
 await test("a lock after the real button came back up starts with none held", async () => {
   await page.mouse.down();
   await page.mouse.up();

@@ -151,16 +151,26 @@
   // games that lock on mousedown) starts with them held, so the release that
   // GCMouse reports reaches the page as pointerup instead of being dropped.
   let realButtons = 0;
+  // Set when GCMouse's release of such a button reached the page before
+  // WebKit's: that real release then arrives after the page has unlocked,
+  // and is swallowed so the page sees one release and one click.
+  let releasedEarly = false;
+  let releasedEarlyUntil = 0;
   for (const type of ["pointerdown", "pointermove", "pointerup", "pointercancel"]) {
     window.addEventListener(
       type,
       (e) => {
-        if (e.isTrusted && e.pointerType === "mouse") realButtons = type === "pointercancel" ? 0 : e.buttons;
+        if (!e.isTrusted || e.pointerType !== "mouse") return;
+        realButtons = type === "pointercancel" ? 0 : e.buttons;
+        if (type === "pointerdown") releasedEarly = false;
+        // click follows pointerup/mouseup in the same dispatch; then it's over.
+        if (type === "pointerup" && releasedEarly) setTimeout(() => { releasedEarly = false; }, 0);
       },
       { capture: true, passive: true }
     );
   }
-  window.addEventListener("blur", () => { realButtons = 0; });
+  window.addEventListener("blur", () => { realButtons = 0; releasedEarly = false; });
+  const RELEASES = new Set(["pointerup", "mouseup", "click", "auxclick"]);
 
   const ownEvents = new WeakSet(); // events the polyfill itself dispatches
   const dispatchDocEvent = (type) => {
@@ -372,7 +382,8 @@
     window.addEventListener(
       type,
       (e) => {
-        if (lockedElement && e.isTrusted && e.pointerType !== "touch") {
+        const lateRelease = releasedEarly && RELEASES.has(type) && performance.now() < releasedEarlyUntil;
+        if ((lockedElement || lateRelease) && e.isTrusted && e.pointerType !== "touch") {
           e.stopImmediatePropagation();
           e.preventDefault();
         }
@@ -598,6 +609,10 @@
     const wasPressed = buttons !== 0;
     if (down === !!(buttons & bit)) return; // no change
     buttons = down ? buttons | bit : buttons & ~bit;
+    if (!down && realButtons & bit) {
+      releasedEarly = true;
+      releasedEarlyUntil = performance.now() + 1000;
+    }
 
     // Pointer events: down/up only for the first/last button, chords are moves.
     let pointerType;
