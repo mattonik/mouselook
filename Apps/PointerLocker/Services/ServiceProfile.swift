@@ -62,7 +62,7 @@ struct ServiceProfile {
     let wording: ServiceWording
     /// Which world it belongs to: Play (games) or Create (tools).
     let category: ServiceCategory
-    /// Checks specific to this service (Play services also run lock-on-click).
+    /// The health checks this service runs (HealthCheck.swift).
     let healthChecks: [HealthCheckID]
 
     static let all: [ServiceProfile] = [.geforceNow, .figma, .generic]

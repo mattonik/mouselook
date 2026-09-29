@@ -30,10 +30,10 @@ enum HealthCheckID: String, CaseIterable {
 }
 
 extension ServiceProfile {
-    /// The profile's own checks plus the ones its category shares.
-    var allHealthChecks: [HealthCheckID] {
-        healthChecks + (category == .play ? [.lockOnClick] : [])
-    }
+    /// The checks this profile runs. lock-on-click is opt-in: on an arbitrary
+    /// page (controller-only games, plain video) a click that doesn't lock is
+    /// normal.
+    var allHealthChecks: [HealthCheckID] { healthChecks }
 
     /// Injected before health-checks.js: which checks to run, and how to read
     /// the session phase (a function literal, so no eval under a page's CSP).

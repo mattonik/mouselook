@@ -41,27 +41,30 @@
   const onLockRequest = (listener) => lockListeners.push(listener);
 
   const checks = {
-    // GeForce NOW: its iPad/touch flow means it didn't see a desktop browser.
+    // GeForce NOW: its iPad/touch flow means it didn't see a desktop browser;
+    // a session starting (queue, loading or stream) proves the desktop client.
+    // The iPad flow is matched in English only, so in another language the
+    // check stays quiet instead of claiming OK.
     "desktop-client"() {
       const ipadFlow = /Add to Home Screen|partially supported/i;
       const seen = () => !!document.body && ipadFlow.test(document.body.innerText);
+      let timer = null;
+      const stop = () => { observer.disconnect(); clearInterval(timer); };
       let scheduled = false;
       const observer = new MutationObserver(() => {
         if (scheduled) return;
         scheduled = true;
         setTimeout(() => {
           scheduled = false;
-          if (seen()) { observer.disconnect(); report("desktop-client", "problem", "ipad-flow"); }
+          if (seen()) { stop(); report("desktop-client", "problem", "ipad-flow"); }
         }, 500);
       });
       const start = () => {
         if (seen()) return report("desktop-client", "problem", "ipad-flow");
         observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
-        setTimeout(() => {
-          observer.disconnect();
-          if (seen()) report("desktop-client", "problem", "ipad-flow");
-          else report("desktop-client", "ok", "desktop");
-        }, config.desktopClientOkAfterMs ?? 10000);
+        timer = setInterval(() => {
+          if (phase() >= 1) { stop(); report("desktop-client", "ok", "session"); }
+        }, config.desktopClientPollMs ?? 1000);
       };
       if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
       else start();
