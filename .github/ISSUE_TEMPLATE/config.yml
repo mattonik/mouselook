@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Join the TestFlight beta
+    url: https://icebear.digital/mouselook
+    about: Beta invites and App Store news are on the website.
+  - name: Report a security issue privately
+    url: https://github.com/mattonik/mouselook/blob/main/SECURITY.md
+    about: Please don't open a public issue for security problems.

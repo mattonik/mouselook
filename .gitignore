@@ -16,3 +16,8 @@ package-lock.json
 
 # Brainstorm / plan scratch
 .superpowers/
+
+# App Store renders (tools/app-store/render.mjs, preview.sh)
+store/out/
+store/raw/
+store/*.png

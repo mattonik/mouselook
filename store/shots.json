@@ -1,0 +1,41 @@
+{
+  "_comment": "App Store screenshots, in listing order. tools/app-store/render.mjs puts each raw screen (store/raw/) under its caption and writes store/out/. Shots whose raw file is missing are skipped.",
+  "shots": [
+    {
+      "id": "01-figma",
+      "raw": "figma.png",
+      "title": "Desktop mouse controls for web apps on iPad",
+      "subtitle": "Made for design tools like Figma and for cloud gaming."
+    },
+    {
+      "id": "02-scrub",
+      "raw": "figma-scrub.png",
+      "title": "Drag values past the screen edge",
+      "subtitle": "The pointer locks while you drag, like on a computer."
+    },
+    {
+      "id": "03-menu",
+      "raw": "menu.png",
+      "title": "Switch between your tools in one tap",
+      "subtitle": "Each one reopens where you left off."
+    },
+    {
+      "id": "04-game",
+      "raw": "game.png",
+      "title": "Aim with your mouse in cloud games",
+      "subtitle": "The mouse turns the camera until you hold Esc."
+    },
+    {
+      "id": "05-get-ready",
+      "raw": "get-ready.png",
+      "title": "Checks your mouse and keyboard first",
+      "subtitle": "A minute of setup, with tips for each service."
+    },
+    {
+      "id": "06-settings",
+      "raw": "settings.png",
+      "title": "Tune the mouse to your hand",
+      "subtitle": "Sensitivity and Y-axis, with setup help one tap away."
+    }
+  ]
+}
