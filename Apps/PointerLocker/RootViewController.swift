@@ -19,6 +19,11 @@ final class RootViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .black
+        #if DEBUG
+        if ScreenshotScene.current == .getReady {
+            return showOnboarding(start: .getReady(.current), cancellable: false)
+        }
+        #endif
         switch LaunchRoute.resolve(serviceID: Settings.serviceID) {
         case .onboarding: showOnboarding(start: .welcome, cancellable: false)
         case .browser: showBrowser()

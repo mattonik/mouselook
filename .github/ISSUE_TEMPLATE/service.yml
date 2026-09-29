@@ -1,0 +1,23 @@
+name: Support another web app
+description: Suggest a design tool, cloud gaming service or other site that needs a real mouse.
+labels: [service request]
+body:
+  - type: input
+    id: url
+    attributes:
+      label: Site
+      placeholder: "https://penpot.app"
+    validations:
+      required: true
+  - type: textarea
+    id: task
+    attributes:
+      label: What do you want to do there with a mouse?
+      placeholder: "Drag values and orbit the 3D view without the pointer hitting the screen edge."
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: Did you try it with ⋯ ▸ Open URL?
+      description: What worked and what didn't. Diagnostics (⋯ ▸ Settings ▸ Copy diagnostics) help too.
