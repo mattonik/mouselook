@@ -8,7 +8,7 @@ struct HealthStatus: Equatable {
     let date: Date
 }
 
-/// Settings ▸ Advanced ▸ Service checks: one row per check.
+/// Settings ▸ Service checks: one row per check.
 struct HealthRow: Equatable, Identifiable {
     let id: HealthCheckID
     let title: String
