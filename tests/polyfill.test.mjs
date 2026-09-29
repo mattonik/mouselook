@@ -14,15 +14,25 @@ const polyfill = readFileSync(
 
 const stub = `
   window.__native = [];
+  window.__messages = [];
   window.webkit = { messageHandlers: { pointerLocker: {
-    postMessage: (m) => window.__native.push(m.type) } } };
+    postMessage: (m) => { window.__native.push(m.type); window.__messages.push(m); } } } };
+`;
+// iPadOS 26 WebKit has no pointer lock API; Chromium does. Remove it so the
+// main suite runs the polyfill path the app runs today.
+const noNativeLock = `
+  for (const [proto, names] of [
+    [Element.prototype, ["requestPointerLock", "webkitRequestPointerLock"]],
+    [Document.prototype, ["exitPointerLock", "webkitExitPointerLock", "pointerLockElement",
+                          "webkitPointerLockElement", "onpointerlockchange", "onpointerlockerror"]],
+  ]) for (const n of names) delete proto[n];
 `;
 // What the app injects for the GeForce NOW profile's browser identity.
 const identity = `window.__pointerLockerConfig = { identity: { platform: "MacIntel", maxTouchPoints: 0 } };`;
 
 const browser = await chromium.launch();
 const page = await browser.newPage();
-await page.addInitScript({ content: stub + identity });
+await page.addInitScript({ content: noNativeLock + stub + identity });
 await page.addInitScript({ content: polyfill });
 await page.goto(`data:text/html,<canvas id="c" width="200" height="200"></canvas>`);
 
@@ -184,10 +194,16 @@ await test("trusted events flow again after unlock", async () => {
 });
 
 await test("forceUnlock and exitPointerLock", async () => {
-  await page.evaluate(() => document.getElementById("c").requestPointerLock());
+  await page.evaluate(() => {
+    document.body.insertAdjacentHTML("beforeend", `<canvas id="fresh"></canvas>`);
+    return document.getElementById("fresh").requestPointerLock();
+  });
   await page.evaluate(() => window.__pointerLocker.forceUnlock());
   assert.equal(await page.evaluate(() => document.pointerLockElement), null);
-  await page.evaluate(() => document.getElementById("c").requestPointerLock());
+  await page.evaluate(() => {
+    document.body.insertAdjacentHTML("beforeend", `<canvas id="fresh"></canvas>`);
+    return document.getElementById("fresh").requestPointerLock();
+  });
   await page.evaluate(() => document.exitPointerLock());
   assert.equal(await page.evaluate(() => document.pointerLockElement), null);
 });
@@ -239,7 +255,7 @@ await test("the identity's maxTouchPoints and platform are applied", async () =>
 
 await test("without an identity nothing is spoofed", async () => {
   const plain = await browser.newPage({ hasTouch: true });
-  await plain.addInitScript({ content: stub });
+  await plain.addInitScript({ content: noNativeLock + stub });
   await plain.addInitScript({ content: polyfill });
   await plain.goto(`data:text/html,<p>`);
   const r = await plain.evaluate(() => ({
@@ -310,7 +326,7 @@ await test("removing the fullscreen element exits fullscreen", async () => {
 // made to report "iPad" in a worker, so the tests check that the worker's
 // getter was replaced (not native) as well as the value it returns.
 const workerPage = await browser.newPage();
-await workerPage.addInitScript({ content: stub + identity });
+await workerPage.addInitScript({ content: noNativeLock + stub + identity });
 await workerPage.addInitScript({ content: polyfill });
 await workerPage.route("https://pointerlocker.test/**", (r) =>
   r.fulfill({ contentType: "text/html", body: "<!doctype html><title>t</title>" }));
@@ -353,7 +369,7 @@ await test("workers still run their own code", async () => {
 const hud = readFileSync(
   new URL("../Apps/PointerLocker/Resources/debug-hud.js", import.meta.url), "utf8");
 const hudPage = await browser.newPage();
-await hudPage.addInitScript({ content: stub + identity });
+await hudPage.addInitScript({ content: noNativeLock + stub + identity });
 await hudPage.addInitScript({ content: polyfill });
 await hudPage.addInitScript({ content: hud });
 await hudPage.goto(`data:text/html,<canvas id="c" width="200" height="200"></canvas>`);
@@ -399,7 +415,7 @@ await test("HUD counts clicks per button and clears released ones", async () => 
 // key is held, so ⌘ + scroll pans in Figma instead of zooming. Reproduced
 // here with a real key press and a wheel event without the flags.
 const modPage = await browser.newPage();
-await modPage.addInitScript({ content: stub });
+await modPage.addInitScript({ content: noNativeLock + stub });
 await modPage.addInitScript({ content: polyfill });
 await modPage.goto(`data:text/html,<canvas id="c" width="200" height="200"></canvas>`);
 const wheelFlags = () => modPage.evaluate(() => {
@@ -440,6 +456,175 @@ await test("held modifiers are forgotten when the page loses focus", async () =>
   await modPage.keyboard.up("Meta");
 });
 await modPage.close();
+
+// Native pointer lock: fakes stand in for a future WebKit so each case is exact.
+const fakeNative = (behaviour) => `
+  let locked = null;
+  Object.defineProperty(Document.prototype, "pointerLockElement", { configurable: true, get() { return locked; } });
+  Document.prototype.exitPointerLock = function () {
+    locked = null; window.__nativeExits = (window.__nativeExits || 0) + 1;
+    setTimeout(() => document.dispatchEvent(new Event("pointerlockchange", { bubbles: true })), 0);
+  };
+  Element.prototype.requestPointerLock = function () {
+    window.__nativeRequests = (window.__nativeRequests || 0) + 1;
+    const el = this;
+    if (${JSON.stringify(behaviour)} === "works") {
+      setTimeout(() => { locked = el; document.dispatchEvent(new Event("pointerlockchange", { bubbles: true })); }, 5);
+      return new Promise((r) => setTimeout(r, 6));
+    }
+    if (${JSON.stringify(behaviour)} === "refuses") {
+      setTimeout(() => document.dispatchEvent(new Event("pointerlockerror", { bubbles: true })), 5);
+      return Promise.reject(new DOMException("not allowed", "NotAllowedError"));
+    }
+    if (${JSON.stringify(behaviour)} === "throws") throw new TypeError("unsupported options");
+    if (${JSON.stringify(behaviour)} === "late") {
+      setTimeout(() => { locked = el; document.dispatchEvent(new Event("pointerlockchange", { bubbles: true })); }, 350);
+    }
+    return undefined; // "silent": never locks, never errors ("late": locks after the fallback)
+  };
+`;
+const nativePage = async (behaviour) => {
+  const p = await browser.newPage();
+  await p.addInitScript({ content: fakeNative(behaviour) + stub });
+  await p.addInitScript({ content: polyfill });
+  await p.goto(`data:text/html,<canvas id="c" width="100" height="100"></canvas>`);
+  await p.evaluate(() => {
+    window.__events = [];
+    for (const t of ["pointerlockchange", "pointerlockerror"])
+      document.addEventListener(t, () => window.__events.push(t));
+  });
+  return p;
+};
+const lockCanvas = (p) => p.evaluate(async () => {
+  const t0 = performance.now();
+  await document.getElementById("c").requestPointerLock();
+  await new Promise((r) => setTimeout(r, 30));
+  return { ms: performance.now() - t0, el: document.pointerLockElement?.id ?? null,
+           events: window.__events, messages: window.__messages, locked: window.__pointerLocker.isLocked };
+});
+
+await test("without a native API the polyfill locks and says so", async () => {
+  await page.evaluate(() => window.__pointerLocker.forceUnlock());
+  await page.evaluate(() => { window.__messages = []; });
+  await page.evaluate(() => {
+    document.body.insertAdjacentHTML("beforeend", `<canvas id="fresh"></canvas>`);
+    return document.getElementById("fresh").requestPointerLock();
+  });
+  const m = await page.evaluate(() => window.__messages);
+  assert.deepEqual(m[0], { type: "lock", mode: "polyfill" });
+  await page.evaluate(() => window.__pointerLocker.forceUnlock());
+});
+
+await test("working native lock is used and the app is told", async () => {
+  const p = await nativePage("works");
+  const r = await lockCanvas(p);
+  assert.equal(r.el, "c");
+  assert.deepEqual(r.events, ["pointerlockchange"]);
+  assert.deepEqual(r.messages, [{ type: "lock", mode: "native" }]);
+  assert.equal(r.locked, true);
+  await p.evaluate(() => document.exitPointerLock());
+  await p.evaluate(() => new Promise((r) => setTimeout(r, 20)));
+  assert.equal(await p.evaluate(() => window.__nativeExits), 1);
+  assert.deepEqual((await p.evaluate(() => window.__messages)).at(-1), { type: "unlock", mode: "native" });
+  await p.close();
+});
+
+await test("refused native lock falls back to the polyfill without an error reaching the page", async () => {
+  const p = await nativePage("refuses");
+  const r = await lockCanvas(p);
+  assert.equal(r.el, "c");
+  assert.deepEqual(r.events, ["pointerlockchange"]);
+  assert.deepEqual(r.messages, [{ type: "lock", mode: "polyfill" }]);
+  assert.ok(r.ms < 250 + 60, `took ${r.ms} ms`);
+  await p.close();
+});
+
+await test("silent native lock falls back after 250 ms and isn't tried again", async () => {
+  const p = await nativePage("silent");
+  const r = await lockCanvas(p);
+  assert.equal(r.el, "c");
+  assert.ok(r.ms >= 240 && r.ms < 400, `took ${r.ms} ms`);
+  assert.deepEqual(r.messages, [{ type: "lock", mode: "polyfill" }]);
+  await p.evaluate(() => document.exitPointerLock());
+  await lockCanvas(p);
+  assert.equal(await p.evaluate(() => window.__nativeRequests), 1, "native tried once per page");
+  await p.close();
+});
+
+await test("testSecondRequestWhileNativePending: one lock, one change", async () => {
+  const p = await nativePage("works");
+  const r = await p.evaluate(async () => {
+    const c = document.getElementById("c");
+    await Promise.all([c.requestPointerLock(), c.requestPointerLock()]);
+    await new Promise((r) => setTimeout(r, 30));
+    return { events: window.__events, requests: window.__nativeRequests, messages: window.__messages };
+  });
+  assert.deepEqual(r.events, ["pointerlockchange"]);
+  assert.equal(r.requests, 1);
+  assert.deepEqual(r.messages, [{ type: "lock", mode: "native" }]);
+  await p.close();
+});
+
+await test("testElementRemovedWhileNativePending: no lock, no stale state", async () => {
+  const p = await nativePage("silent");
+  const r = await p.evaluate(async () => {
+    const c = document.getElementById("c");
+    const pending = c.requestPointerLock().catch((e) => e.name);
+    c.remove();
+    const outcome = await pending;
+    await new Promise((r) => setTimeout(r, 30));
+    return { outcome, el: document.pointerLockElement, locked: window.__pointerLocker.isLocked, messages: window.__messages };
+  });
+  assert.equal(r.el, null);
+  assert.equal(r.locked, false);
+  assert.deepEqual(r.messages, []);
+  assert.equal(r.outcome, "WrongDocumentError");
+  await p.close();
+});
+
+await test("a native request that throws falls back, and the element can lock again after unlocking", async () => {
+  const p = await nativePage("throws");
+  assert.equal((await lockCanvas(p)).el, "c");
+  await p.evaluate(() => document.exitPointerLock());
+  await p.evaluate(() => new Promise((r) => setTimeout(r, 20)));
+  assert.equal(await p.evaluate(() => document.pointerLockElement), null);
+  const again = await lockCanvas(p);
+  assert.equal(again.el, "c", "second lock on the same canvas");
+  await p.close();
+});
+
+await test("a native lock that arrives after the fallback is released, and the page doesn't see it", async () => {
+  const p = await nativePage("late");
+  const r = await lockCanvas(p);
+  assert.equal(r.el, "c");
+  await p.evaluate(() => new Promise((r) => setTimeout(r, 200)));
+  const after = await p.evaluate(() => ({
+    exits: window.__nativeExits || 0, events: window.__events, locked: window.__pointerLocker.isLocked,
+    messages: window.__messages,
+  }));
+  assert.equal(after.exits, 1, "WebKit's late lock is exited");
+  assert.deepEqual(after.events, ["pointerlockchange"], "only the fallback's change");
+  assert.equal(after.locked, true, "the polyfill lock stays");
+  assert.deepEqual(after.messages, [{ type: "lock", mode: "polyfill" }]);
+  await p.close();
+});
+
+await test("the polyfill's own lock error still reaches the page while a native attempt is pending", async () => {
+  const p = await nativePage("silent");
+  const r = await p.evaluate(async () => {
+    const t0 = performance.now();
+    const pending = document.getElementById("c").requestPointerLock();
+    await document.createElement("div").requestPointerLock().catch(() => {});
+    await new Promise((r) => setTimeout(r, 20));
+    const errorsSeen = window.__events.filter((e) => e === "pointerlockerror").length;
+    await pending;
+    return { errorsSeen, ms: performance.now() - t0, messages: window.__messages };
+  });
+  assert.equal(r.errorsSeen, 1, "the detached element's error reaches the page");
+  assert.ok(r.ms >= 240, `the canvas attempt ran its full course (${r.ms} ms)`);
+  assert.deepEqual(r.messages, [{ type: "lock", mode: "polyfill" }]);
+  await p.close();
+});
 
 await browser.close();
 if (failures) {

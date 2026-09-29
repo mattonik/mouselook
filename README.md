@@ -9,9 +9,11 @@ WebKit on iPadOS don't implement pointer lock. Two kinds of service use it:
 - **Create:** design tools such as Figma, for dragging number fields and
   panning without the pointer stopping at the screen edge.
 
-The app is for personal use. You sideload it with Xcode. Inside the code it's
-still called PointerLocker (Xcode project, target and bundle ID `sk.icebear.pointerlocker`),
-so an installed copy keeps its settings and sign-ins.
+You can sideload it with Xcode; to build it under your own Apple ID, change
+`DEVELOPMENT_TEAM` and `PRODUCT_BUNDLE_IDENTIFIER` in `project.yml`. The bundle
+ID is `sk.icebear.mouselook`; the Xcode project and target are still called
+PointerLocker. Copies installed before the bundle ID change are a separate app
+with their own settings and sign-ins.
 
 ## Approach
 
@@ -100,10 +102,13 @@ open PointerLocker.xcodeproj
    only to a full-screen, frontmost app. If the cursor stays visible, a toast
    explains why.
 
-The **⋯ button** in the bottom-left corner has Back, Reload, Home, Open URL and
-**Settings…**: switch service, show the setup guide again, mouse sensitivity,
-invert Y-axis, background keep-alive, microphone, browser identity and the debug
-overlay. It hides while the pointer is locked.
+The **⋯ button** in the bottom-left corner lists the services first (GeForce
+NOW, Figma): pick one to switch straight to it. Each service reopens the page you
+were last on, such as the open Figma file; a running game asks before you leave.
+Below that are Back, Reload, Home, Open URL and **Settings…**: switch service
+(with the setup guide), show the setup guide again, mouse sensitivity, invert
+Y-axis, background keep-alive, microphone, browser identity, the debug overlay
+and service checks. The button hides while the pointer is locked.
 
 **Switching apps mid-game.** iPadOS suspends an app within seconds of leaving
 it, which drops the stream and ends the session. Mouselook keeps itself
@@ -138,6 +143,14 @@ look comes out inverted, toggle *Invert Y-axis*.
 
 ### Debugging
 
+**Service checks.** Mouselook watches for signs that a service changed how it
+treats this browser (GeForce NOW loading its iPad version, a game never asking
+for the mouse, Figma not locking while you scrub) and says so once per
+session. ⋯ ▸ Settings… ▸ Service checks shows the results; Copy diagnostics
+puts a report with the app, iPadOS and WebKit versions, the lock path and the
+last 200 events on the clipboard. Nothing leaves the iPad unless you paste it
+somewhere.
+
 Turn on **Debug overlay** in ⋯ ▸ Settings…. The page reloads, and a small panel in
 the bottom right shows:
 
@@ -165,23 +178,23 @@ curl -s --data-binary 'return document.pointerLockElement?.id' localhost:8766/ev
 
 ### Tests
 
-The polyfill is tested in headless Chromium by driving the same batch protocol
-the native side uses:
+Run everything CI runs on your Mac before pushing:
 
 ```sh
-npm install && npm test
+npm install          # once
+tools/test.sh        # Swift unit tests on an iPad simulator + polyfill tests
+tools/test.sh swift  # or: js; extra arguments go to xcodebuild
 ```
 
-The native logic has XCTest unit tests: mouse batching, service profiles and
-page recovery.
+Builds are incremental (derived data in `build/`), so repeat runs take
+seconds. The Swift suite covers mouse batching, the mouse hub, service
+profiles and categories, onboarding logic, page recovery and settings; the
+polyfill is tested in headless Chromium by driving the same batch protocol
+the native side uses.
 
-```sh
-xcodegen && xcodebuild test -project PointerLocker.xcodeproj -scheme PointerLocker \
-  -destination 'platform=iOS Simulator,name=iPad (A16)'
-```
-
-CI (`.github/workflows/build.yml`) runs both test suites. It also builds both
-iOS targets for the Simulator on a macOS runner.
+CI (`.github/workflows/build.yml`) runs on every pull request, on merges to
+`main` and on demand, as one Linux job for the polyfill and one macOS job that
+builds and tests the app.
 
 ## Code layout
 
@@ -224,3 +237,9 @@ iOS targets for the Simulator on a macOS runner.
   tuning.
 - **Keyboard focus.** Keys go to the web view through the normal responder
   chain. If keys stop working after a lock, tap the page once before locking.
+
+## License
+
+The code is licensed under the [Apache License 2.0](LICENSE). The name
+"Mouselook" and the app icon are not covered by the license: if you publish
+your own build, give it a different name and icon.

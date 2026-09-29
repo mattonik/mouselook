@@ -8,6 +8,8 @@ struct SettingsView: View {
     let onSwitchService: () -> Void
     let onShowSetupGuide: () -> Void
     let onClose: () -> Void
+    let checks: [HealthRow]
+    let onCopyDiagnostics: () -> Void
 
     @State private var sensitivity = Settings.sensitivity
     @State private var invertY = Settings.invertY
@@ -15,6 +17,7 @@ struct SettingsView: View {
     @State private var microphone = Settings.microphone
     @State private var useIdentity = Settings.useServiceIdentity
     @State private var debugHUD = Settings.debugHUD
+    @State private var copied = false
 
     var body: some View {
         NavigationStack {
@@ -54,6 +57,34 @@ struct SettingsView: View {
                     Text("Advanced")
                 } footer: {
                     Text("Browser identity makes the service see a desktop browser, which the mouse features need. Changes here reload the page.")
+                }
+                Section {
+                    ForEach(checks) { row in
+                        LabeledContent(row.title) {
+                            HStack(spacing: 8) {
+                                switch row.status?.result {
+                                case .ok?: Label("OK", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                                case .problem?: Label("Problem", systemImage: "exclamationmark.triangle.fill").foregroundStyle(.yellow)
+                                case nil: Text("Not run yet").foregroundStyle(.secondary)
+                                }
+                                if let date = row.status?.date {
+                                    Text(date, style: .time).foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    }
+                    Button(copied ? "Copied" : "Copy diagnostics") {
+                        onCopyDiagnostics()
+                        copied = true
+                        Task {
+                            try? await Task.sleep(for: .seconds(2))
+                            copied = false
+                        }
+                    }
+                } header: {
+                    Text("Service checks")
+                } footer: {
+                    Text("Mouselook watches for signs that the service changed how it treats this browser. Diagnostics stay on this iPad until you copy them.")
                 }
             }
             .navigationTitle("Settings")
