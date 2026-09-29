@@ -100,10 +100,13 @@ open PointerLocker.xcodeproj
    only to a full-screen, frontmost app. If the cursor stays visible, a toast
    explains why.
 
-The **⋯ button** in the bottom-left corner has Back, Reload, Home, Open URL and
-**Settings…**: switch service, show the setup guide again, mouse sensitivity,
-invert Y-axis, background keep-alive, microphone, browser identity and the debug
-overlay. It hides while the pointer is locked.
+The **⋯ button** in the bottom-left corner lists the services first (GeForce
+NOW, Figma): pick one to switch straight to it. Each service reopens the page you
+were last on, such as the open Figma file; a running game asks before you leave.
+Below that are Back, Reload, Home, Open URL and **Settings…**: switch service
+(with the setup guide), show the setup guide again, mouse sensitivity, invert
+Y-axis, background keep-alive, microphone, browser identity, the debug overlay
+and service checks. The button hides while the pointer is locked.
 
 **Switching apps mid-game.** iPadOS suspends an app within seconds of leaving
 it, which drops the stream and ends the session. Mouselook keeps itself
