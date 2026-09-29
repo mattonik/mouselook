@@ -1,14 +1,15 @@
 name: Build
 
-# Only on merges to main (and on demand). Day-to-day testing happens on the
-# developer's Mac with tools/test.sh; macOS minutes count 10x against the
-# free Actions quota, so CI stays to one macOS job per merge.
+# On every pull request, on merges to main, and on demand. The repository is
+# public, so GitHub-hosted runners (macOS included) cost nothing.
 on:
+  pull_request:
   push:
     branches: [main]
   workflow_dispatch:
 
-# A newer merge makes an older, still-running check pointless.
+# A newer push to the same PR or branch makes an older, still-running check
+# pointless.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true

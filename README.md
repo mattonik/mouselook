@@ -192,11 +192,9 @@ profiles and categories, onboarding logic, page recovery and settings; the
 polyfill is tested in headless Chromium by driving the same batch protocol
 the native side uses.
 
-CI (`.github/workflows/build.yml`) runs only on merges to `main` and on
-demand, as one Linux job for the polyfill and one macOS job that builds and
-tests the app. macOS minutes count ten times against GitHub's free Actions
-quota, so day-to-day testing stays local, and related work is combined into
-one branch before it's merged.
+CI (`.github/workflows/build.yml`) runs on every pull request, on merges to
+`main` and on demand, as one Linux job for the polyfill and one macOS job that
+builds and tests the app.
 
 ## Code layout
 
@@ -239,3 +237,9 @@ one branch before it's merged.
   tuning.
 - **Keyboard focus.** Keys go to the web view through the normal responder
   chain. If keys stop working after a lock, tap the page once before locking.
+
+## License
+
+The code is licensed under the [Apache License 2.0](LICENSE). The name
+"Mouselook" and the app icon are not covered by the license: if you publish
+your own build, give it a different name and icon.
