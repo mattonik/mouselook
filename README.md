@@ -9,7 +9,9 @@ WebKit on iPadOS don't implement pointer lock. Two kinds of service use it:
   too: Space + drag pans the canvas, ⌘ + scroll zooms. More browser-based
   design tools will follow as they're tested.
 - **Play:** cloud games such as GeForce NOW (`play.geforcenow.com`), for
-  mouse-look: aiming and looking around.
+  mouse-look: aiming and looking around. Other browser-based services that
+  use pointer lock, such as Xbox Cloud Gaming, should work through ⋯ ▸ Open
+  URL, but haven't been tested and don't have a service profile yet.
 
 **Website:** [icebear.digital/mouselook](https://icebear.digital/mouselook).
 The app is free to build from this repository, and is coming to the App Store
