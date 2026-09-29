@@ -21,3 +21,6 @@ package-lock.json
 store/out/
 store/raw/
 store/*.png
+
+# Business planning stays local
+docs/launch-plan.md
