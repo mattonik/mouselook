@@ -1,6 +1,6 @@
 import Foundation
 
-/// What Settings ▸ Advanced ▸ Copy diagnostics puts on the clipboard.
+/// What Settings ▸ Service checks ▸ Copy diagnostics puts on the clipboard.
 enum DiagnosticsReport {
     static func text(appVersion: String, osVersion: String, webKitVersion: String,
                      service: ServiceProfile, identity: BrowserIdentity, lockMode: String?,
