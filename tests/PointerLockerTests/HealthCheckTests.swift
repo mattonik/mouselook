@@ -20,7 +20,7 @@ final class HealthCheckTests: XCTestCase {
         XCTAssertEqual(HealthCheckID.desktopClient.problemMessage,
                        "GeForce NOW didn't load its desktop version, so the mouse may not lock. Updating Mouselook usually fixes this.")
         XCTAssertEqual(HealthCheckID.lockOnClick.problemMessage,
-                       "The game didn't ask for the mouse. Click into the game again, or check Settings ▸ Advanced.")
+                       "The game didn't ask for the mouse. Click into the game again. If it keeps happening, copy diagnostics in Settings ▸ Service checks.")
         XCTAssertEqual(HealthCheckID.scrubLock.problemMessage,
                        "Figma didn't lock the pointer while you dragged, so values stop at the screen edge.")
     }
