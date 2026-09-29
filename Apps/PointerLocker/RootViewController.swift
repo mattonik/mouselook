@@ -117,6 +117,12 @@ final class RootViewController: UIViewController {
         showOnboarding(start: .chooser, cancellable: true)
     }
 
+    /// ⋯ ▸ a service: switch straight to it, confirming first if a game is
+    /// running. It reopens that service's last page.
+    func switchTo(_ profile: ServiceProfile) {
+        finishOnboarding(with: profile)
+    }
+
     /// Settings ▸ Show setup guide: Get ready for the current service.
     func showSetupGuide() {
         showOnboarding(start: .getReady(ServiceProfile.current), cancellable: true)

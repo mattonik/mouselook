@@ -34,7 +34,22 @@ extension BrowserViewController {
         let settings = UIAction(title: "Settings…", image: UIImage(systemName: "gearshape")) { [weak self] _ in
             self?.showSettings()
         }
-        return [navigation, settings]
+        return [servicesSection(), navigation, settings].compactMap { $0 }
+    }
+
+    /// Switch between services straight from the menu (no chooser, no Get
+    /// ready); the current one is checked. A running game is confirmed first.
+    private func servicesSection() -> UIMenu? {
+        let entries = ServiceSwitch.menuEntries(current: Settings.serviceID)
+        guard !entries.isEmpty else { return nil }
+        let actions = entries.map { entry in
+            UIAction(title: entry.name, subtitle: entry.subtitle, image: UIImage(systemName: entry.symbol),
+                     state: entry.isCurrent ? .on : .off) { [weak self] _ in
+                guard !entry.isCurrent, let profile = ServiceProfile.profile(id: entry.id) else { return }
+                self?.root?.switchTo(profile)
+            }
+        }
+        return UIMenu(options: .displayInline, children: actions)
     }
 
     private func promptForURL() {
