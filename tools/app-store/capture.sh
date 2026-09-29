@@ -15,7 +15,8 @@
 #
 # Before running: the simulator is in landscape and not in Stage Manager
 # (Stage Manager puts a resize handle in the corner). SIM=<udid> picks a
-# simulator other than the booted 13-inch iPad.
+# simulator other than the booted 13-inch iPad; PAGE_WAIT=<seconds> gives the
+# service page longer to load behind Settings (default 20).
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
@@ -69,7 +70,7 @@ for scene in $scenes; do
     case $scene in
         welcome)   launch -serviceID none; sleep 4 ;;
         get-ready) launch -serviceID figma -screenshotScene getReady; sleep 4 ;;
-        settings)  launch -serviceID figma -screenshotScene settings; sleep 8 ;;
+        settings)  launch -serviceID figma -screenshotScene settings; sleep "${PAGE_WAIT:-20}" ;;
         menu)      launch -serviceID figma
                    read -r -p "  Open the ⋯ menu in the simulator, then press Return. " ;;
         *)         echo "  unknown scene"; continue ;;
