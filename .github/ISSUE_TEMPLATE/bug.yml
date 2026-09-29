@@ -1,0 +1,51 @@
+name: Something doesn't work
+description: The mouse, a service, or the app itself misbehaves.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing Mouselook. The diagnostics below help most: in the app, open ⋯ ▸ Settings ▸ Copy diagnostics and paste the result. They contain host names and check results, never page content or passwords, but look them over before posting.
+  - type: dropdown
+    id: service
+    attributes:
+      label: Service
+      options:
+        - Figma
+        - GeForce NOW
+        - Another site (say which below)
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+      placeholder: "Dragging the W field stops at the screen edge instead of carrying on."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open a Figma file
+        2. Select a frame
+        3. Drag the W label to the right
+  - type: input
+    id: device
+    attributes:
+      label: iPad model and iPadOS version
+      placeholder: "iPad Pro 12.9-inch (3rd generation), iPadOS 26.5"
+    validations:
+      required: true
+  - type: input
+    id: input
+    attributes:
+      label: Mouse, trackpad and keyboard
+      placeholder: "Logitech MX Master 3S over Bluetooth, Magic Keyboard"
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: ⋯ ▸ Settings ▸ Copy diagnostics, then paste here.
+      render: text

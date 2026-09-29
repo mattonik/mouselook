@@ -17,6 +17,16 @@ WebKit on iPadOS don't implement pointer lock. Two kinds of service use it:
 The app is free to build from this repository, and is coming to the App Store
 as a $9.99 one-time purchase. To join the TestFlight beta, see the website.
 
+<p>
+  <img src="docs/images/01-figma.jpg" width="32%" alt="Figma on iPad in Mouselook">
+  <img src="docs/images/02-scrub.jpg" width="32%" alt="Dragging a value in Figma past the screen edge">
+  <img src="docs/images/03-menu.jpg" width="32%" alt="Switching between Figma and GeForce NOW from the menu">
+</p>
+
+Found a problem, or want another web app supported? [Open an
+issue](https://github.com/mattonik/mouselook/issues/new/choose); ⋯ ▸ Settings ▸
+Copy diagnostics gives the details that help most.
+
 You can sideload it with Xcode; to build it under your own Apple ID, change
 `DEVELOPMENT_TEAM` and `PRODUCT_BUNDLE_IDENTIFIER` in `project.yml`. The bundle
 ID is `sk.icebear.mouselook`; the Xcode project and target are still called
@@ -246,6 +256,13 @@ builds and tests the app.
   tuning.
 - **Keyboard focus.** Keys go to the web view through the normal responder
   chain. If keys stop working after a lock, tap the page once before locking.
+
+## Contributing
+
+Pull requests are welcome. Run `tools/test.sh` before pushing (CI runs the same
+suites on every pull request). Contributions are accepted under the same
+Apache 2.0 license as the rest of the code. For security problems, see
+[SECURITY.md](SECURITY.md).
 
 ## License
 
