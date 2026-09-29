@@ -41,6 +41,14 @@ xcrun simctl status_bar "$sim" override --time 9:41 --batteryState charged --bat
 
 launch() {
     xcrun simctl terminate "$sim" "$bundle" 2>/dev/null || true
+    # Launching before the old process is gone brings that one back instead,
+    # without the new arguments.
+    for _ in $(seq 20); do
+        xcrun simctl spawn "$sim" launchctl list | awk -v b="UIKitApplication:$bundle" \
+            'index($3, b) == 1 && $1 != "-" { found = 1 } END { exit !found }' || break
+        sleep 0.5
+    done
+    sleep 1
     xcrun simctl launch "$sim" "$bundle" "$@" >/dev/null
 }
 
