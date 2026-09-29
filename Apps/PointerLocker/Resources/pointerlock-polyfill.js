@@ -147,6 +147,21 @@
     { capture: true, passive: true }
   );
 
+  // Buttons held on the real pointer. A lock taken mid-press (Figma's scrub,
+  // games that lock on mousedown) starts with them held, so the release that
+  // GCMouse reports reaches the page as pointerup instead of being dropped.
+  let realButtons = 0;
+  for (const type of ["pointerdown", "pointermove", "pointerup", "pointercancel"]) {
+    window.addEventListener(
+      type,
+      (e) => {
+        if (e.isTrusted && e.pointerType === "mouse") realButtons = type === "pointercancel" ? 0 : e.buttons;
+      },
+      { capture: true, passive: true }
+    );
+  }
+  window.addEventListener("blur", () => { realButtons = 0; });
+
   const ownEvents = new WeakSet(); // events the polyfill itself dispatches
   const dispatchDocEvent = (type) => {
     const e = new Event(type, { bubbles: true });
@@ -164,6 +179,7 @@
       }
       buttons = 0;
     }
+    if (el && !previous) buttons = realButtons;
     lockedElement = el;
     if (el !== previous) {
       post({ type: el ? "lock" : "unlock", mode: "polyfill" });
