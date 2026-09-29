@@ -58,9 +58,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if not self._is_app():
             return self._reply(403)
         try:
-            self._reply(200, scripts.get(timeout=25))
+            script = scripts.get(timeout=25)
         except queue.Empty:
-            self._reply(204)
+            return self._reply(204)
+        try:
+            self._reply(200, script)
+        except (BrokenPipeError, ConnectionResetError):
+            # The poller went away while waiting (the app replaced its
+            # browser, which cancels the old poll): hand the script to the
+            # next poller instead of losing it.
+            scripts.put(script)
 
     def do_POST(self):
         if self.path == "/result":

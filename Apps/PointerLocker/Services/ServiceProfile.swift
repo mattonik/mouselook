@@ -62,6 +62,8 @@ struct ServiceProfile {
     let wording: ServiceWording
     /// Which world it belongs to: Play (games) or Create (tools).
     let category: ServiceCategory
+    /// The health checks this service runs (HealthCheck.swift).
+    let healthChecks: [HealthCheckID]
 
     static let all: [ServiceProfile] = [.geforceNow, .figma, .generic]
 
@@ -92,7 +94,8 @@ struct ServiceProfile {
         artwork: ServiceArtwork(symbol: "globe", colors: (.systemGray, .darkGray)),
         setupTips: [],
         wording: .neutral,
-        category: .play
+        category: .play,
+        healthChecks: []
     )
 
     /// The identity in effect, given the user's "use browser identity" choice.

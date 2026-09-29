@@ -49,6 +49,7 @@ final class RootViewController: UIViewController {
         onboarding = nil
         let browser = BrowserViewController()
         browser.root = self
+        DiagnosticsLog.shared.record("service", ServiceProfile.current.id)
         self.browser = browser
         embed(browser)
         refreshSystemPreferences()
@@ -114,6 +115,12 @@ final class RootViewController: UIViewController {
     /// confirmed only if a different service is picked.
     func switchService() {
         showOnboarding(start: .chooser, cancellable: true)
+    }
+
+    /// ⋯ ▸ a service: switch straight to it, confirming first if a game is
+    /// running. It reopens that service's last page.
+    func switchTo(_ profile: ServiceProfile) {
+        finishOnboarding(with: profile)
     }
 
     /// Settings ▸ Show setup guide: Get ready for the current service.

@@ -18,7 +18,6 @@ final class DebugBridge {
     private let base: URL
     private let token: String
     private var stopped = false
-    private var pending: URLSessionDataTask?
 
     init?(webView: WKWebView) {
         let info = Bundle.main.infoDictionary ?? [:]
@@ -43,21 +42,27 @@ final class DebugBridge {
         poll()
     }
 
-    /// When the browser is replaced: stop polling, so the old bridge doesn't
-    /// take scripts meant for the new one (its pending poll keeps it alive).
+    /// When the browser is replaced: stop polling. A poll already waiting
+    /// may still get a script; it's answered with "page replaced" (see poll),
+    /// so the Mac side gets a reply at once instead of a 60 s time-out.
     func stop() {
         stopped = true
-        pending?.cancel()
-        pending = nil
     }
 
     private func poll() {
         guard !stopped else { return }
         var request = makeRequest("next")
         request.timeoutInterval = 60
+        // Built now, so a script that arrives after this bridge is gone can
+        // still be answered.
+        let replaced = Self.resultRequest(makeRequest("result"),
+            "ERROR: this page was replaced (service switch or reload); send the script again")
         let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, _ in
-            guard let self else { return }
             let status = (response as? HTTPURLResponse)?.statusCode
+            guard let self, !self.stopped else {
+                if status == 200 { URLSession.shared.dataTask(with: replaced).resume() }
+                return
+            }
             guard let data, status == 200, let script = String(data: data, encoding: .utf8) else {
                 // 204 = nothing queued, re-poll now; no server = back off.
                 let delay: TimeInterval = status == 204 ? 0 : 2
@@ -66,12 +71,14 @@ final class DebugBridge {
             }
             DispatchQueue.main.async { self.run(script) }
         }
-        pending = task
         task.resume()
     }
 
     private func run(_ script: String) {
-        guard !stopped, let webView else { return }
+        guard !stopped, let webView else {
+            post("ERROR: this page was replaced (service switch or reload); send the script again")
+            return
+        }
         let body = "return JSON.stringify(await (async () => {\n\(script)\n})()) ?? 'undefined';"
         webView.callAsyncJavaScript(body, arguments: [:], in: nil, in: .page) { [weak self] result in
             let reply: String
@@ -84,12 +91,16 @@ final class DebugBridge {
     }
 
     private func post(_ reply: String) {
-        var request = makeRequest("result")
-        request.httpMethod = "POST"
-        request.httpBody = Data(reply.utf8)
-        URLSession.shared.dataTask(with: request) { [weak self] _, _, _ in
+        URLSession.shared.dataTask(with: Self.resultRequest(makeRequest("result"), reply)) { [weak self] _, _, _ in
             DispatchQueue.main.async { self?.poll() }
         }.resume()
+    }
+
+    private static func resultRequest(_ base: URLRequest, _ reply: String) -> URLRequest {
+        var request = base
+        request.httpMethod = "POST"
+        request.httpBody = Data(reply.utf8)
+        return request
     }
 }
 #endif
