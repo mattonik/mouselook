@@ -36,6 +36,7 @@ final class BrowserViewController: UIViewController {
     private var settingsBefore: (identity: Bool, hud: Bool)?
     /// Which pointer lock held the last lock: "native" (WebKit's) or "polyfill".
     private(set) var lastLockMode: String?
+    private var pageObservation: NSKeyValueObservation?
     private lazy var health = HealthMonitor(log: .shared) { [weak self] message in self?.toast.show(message) }
 
     private var pageWantsLock = false
@@ -95,7 +96,12 @@ final class BrowserViewController: UIViewController {
         debugBridge?.start()
         #endif
 
-        webView.load(URLRequest(url: Settings.homeURL))
+        // Remember where the user is, including in-page navigation (Figma
+        // opens files without a page load), so switching back reopens it.
+        pageObservation = webView.observe(\.url, options: [.new]) { webView, _ in
+            if let url = webView.url { Settings.rememberPage(url, for: .current) }
+        }
+        webView.load(URLRequest(url: Settings.startPage))
     }
 
     /// Rebuild scripts and user agent after a settings change, then reload.

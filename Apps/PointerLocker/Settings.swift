@@ -20,6 +20,23 @@ enum Settings {
         set { defaults.set(newValue, forKey: "homeURL.\(ServiceProfile.current.id)") }
     }
 
+    /// The last page of a service the user was on, so switching back (or
+    /// relaunching) reopens it. Only pages on the service's own site count:
+    /// a sign-in page or an outside link isn't reopened.
+    static func rememberPage(_ url: URL, for profile: ServiceProfile) {
+        guard let host = url.host?.lowercased(), host == profile.homeURL.host?.lowercased() else { return }
+        defaults.set(url, forKey: "lastPage.\(profile.id)")
+    }
+
+    static func lastPage(for profile: ServiceProfile) -> URL? {
+        defaults.url(forKey: "lastPage.\(profile.id)")
+    }
+
+    /// Where the current service opens: its last page, else its home.
+    static var startPage: URL {
+        lastPage(for: .current) ?? homeURL
+    }
+
     /// Multiplier applied to raw GCMouse deltas: always one of the presets,
     /// so the Settings picker shows what's in effect.
     static var sensitivity: Double {
