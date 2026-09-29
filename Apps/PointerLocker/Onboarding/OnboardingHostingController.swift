@@ -18,6 +18,13 @@ final class OnboardingHostingController: UIHostingController<OnboardingFlow> {
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
+        #if DEBUG
+        if ScreenshotScene.current == .getReady {
+            monitor.update(mouseCount: 1)
+            monitor.update(keyboardConnected: true)
+            return
+        }
+        #endif
         monitor.start()
     }
 

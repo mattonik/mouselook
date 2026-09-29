@@ -94,6 +94,13 @@ final class BrowserViewController: UIViewController {
         #if DEBUG
         debugBridge = DebugBridge(webView: webView)
         debugBridge?.start()
+        if ScreenshotScene.current == .settings {
+            for check in ServiceProfile.current.allHealthChecks {
+                health.receive(check: check.rawValue, result: "ok", code: "screenshot",
+                               host: Settings.homeURL.host ?? "", locked: false)
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in self?.showSettings() }
+        }
         #endif
 
         // Remember where the user is, including in-page navigation (Figma
