@@ -19,7 +19,7 @@ final class BackgroundSessionKeeper {
     static let startingLimit: TimeInterval = 30 * 60
     static let pollInterval: TimeInterval = 5
 
-    private let log = Logger(subsystem: "sk.icebear.pointerlocker", category: "KeepAlive")
+    private let log = Logger(subsystem: "sk.icebear.mouselook", category: "KeepAlive")
     private weak var webView: WKWebView?
     private let keepAlive = BackgroundKeepAlive()
     private var streamWatch: Timer?

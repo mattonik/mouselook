@@ -12,7 +12,7 @@ settings:
     CODE_SIGN_STYLE: Automatic
     # Change to your own team to build elsewhere.
     DEVELOPMENT_TEAM: AR9ZHABG8Y  # IceBear s.r.o.
-    MARKETING_VERSION: "0.1.0"
+    MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: "1"
 
 targets:
@@ -27,7 +27,7 @@ targets:
     settings:
       base:
         # Change to something unique to you (free Apple IDs need a unique ID).
-        PRODUCT_BUNDLE_IDENTIFIER: sk.icebear.pointerlocker
+        PRODUCT_BUNDLE_IDENTIFIER: sk.icebear.mouselook
         # Apps/PointerLocker/Assets.xcassets; rendered by tools/render-icon.sh.
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         # Debug builds on a device can reach tools/debug-bridge.py on a Mac:
@@ -38,6 +38,11 @@ targets:
       path: Apps/PointerLocker/Info.plist
       properties:
         CFBundleDisplayName: Mouselook
+        # XcodeGen otherwise writes a fixed 1.0 (1); take the build settings.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # Only HTTPS through WebKit: exempt, so uploads don't ask each time.
+        ITSAppUsesNonExemptEncryption: false
         UILaunchScreen: {}
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
@@ -56,12 +61,25 @@ targets:
         # Keeps a stream alive for a while in the background (⋯ ▸ Settings… ▸
         # Keep game running in background); the app pauses media when that time is up.
         UIBackgroundModes: [audio]
-        # Only used by Debug builds (DebugBridge) to reach a developer Mac.
+        # Only used by Debug builds (DebugBridge) to reach a developer Mac; the
+        # "Remove debug-only Info.plist keys" phase deletes these four from
+        # every other configuration.
         PLDebugBridgeURL: $(DEBUG_BRIDGE_URL)
         PLDebugBridgeToken: $(DEBUG_BRIDGE_TOKEN)
         NSLocalNetworkUsageDescription: Debug builds connect to a developer Mac on your network for testing.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
+    postBuildScripts:
+      - name: Remove debug-only Info.plist keys
+        basedOnDependencyAnalysis: false
+        inputFiles:
+          - $(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)
+        script: |
+          [ "$CONFIGURATION" = Debug ] && exit 0
+          plist="$TARGET_BUILD_DIR/$INFOPLIST_PATH"
+          for key in PLDebugBridgeURL PLDebugBridgeToken NSLocalNetworkUsageDescription NSAppTransportSecurity; do
+              /usr/libexec/PlistBuddy -c "Delete :$key" "$plist" 2>/dev/null || true
+          done
     scheme:
       testTargets: [PointerLockerTests]
 
@@ -74,7 +92,7 @@ targets:
       - target: PointerLocker
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: sk.icebear.pointerlockertests
+        PRODUCT_BUNDLE_IDENTIFIER: sk.icebear.mouselooktests
         GENERATE_INFOPLIST_FILE: YES
 
   MouseLockPrototype:
