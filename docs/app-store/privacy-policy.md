@@ -13,6 +13,6 @@ Mouselook does not collect, store on a server, or share any personal data.
 - **Microphone.** Used only when a website asks for it (for example voice chat
   in a game), after you allow it.
 
-Contact: [support email]
+Contact: [martin@icebear.sk](mailto:martin@icebear.sk)
 
-Last updated: [date]
+Last updated: 29 September 2026

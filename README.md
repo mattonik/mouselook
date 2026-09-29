@@ -9,6 +9,10 @@ WebKit on iPadOS don't implement pointer lock. Two kinds of service use it:
 - **Create:** design tools such as Figma, for dragging number fields and
   panning without the pointer stopping at the screen edge.
 
+**Website:** [icebear.digital/mouselook](https://icebear.digital/mouselook).
+The app is free to build from this repository, and is coming to the App Store
+as a $9.99 one-time purchase. To join the TestFlight beta, see the website.
+
 You can sideload it with Xcode; to build it under your own Apple ID, change
 `DEVELOPMENT_TEAM` and `PRODUCT_BUNDLE_IDENTIFIER` in `project.yml`. The bundle
 ID is `sk.icebear.mouselook`; the Xcode project and target are still called
@@ -107,8 +111,9 @@ NOW, Figma): pick one to switch straight to it. Each service reopens the page yo
 were last on, such as the open Figma file; a running game asks before you leave.
 Below that are Back, Reload, Home, Open URL and **Settings…**: switch service
 (with the setup guide), show the setup guide again, mouse sensitivity, invert
-Y-axis, background keep-alive, microphone, browser identity, the debug overlay
-and service checks. The button hides while the pointer is locked.
+Y-axis, background keep-alive, microphone, browser identity, the debug overlay,
+service checks, and About (version, links to the website and this
+repository). The button hides while the pointer is locked.
 
 **Switching apps mid-game.** iPadOS suspends an app within seconds of leaving
 it, which drops the stream and ends the session. Mouselook keeps itself

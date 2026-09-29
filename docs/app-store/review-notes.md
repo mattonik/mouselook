@@ -4,6 +4,18 @@ Drafts to paste into App Store Connect. Check them against the build you
 submit. Fill in the bracketed parts yourself; demo accounts never go in this
 repository.
 
+## App Information and version URLs
+
+- **Marketing URL:** https://icebear.digital/mouselook
+- **Support URL:** https://icebear.digital/mouselook (support section: GitHub
+  issues and email)
+- **Privacy Policy URL:** https://github.com/mattonik/mouselook/blob/main/docs/app-store/privacy-policy.md
+  (the website's Privacy entry links to the same file)
+- **Price:** USD 9.99, one-time, no in-app purchases
+
+The website's TestFlight sign-up is an email to martin@icebear.sk; add the
+Apple ID emails from those messages as external testers.
+
 ## TestFlight ▸ Test Information
 
 **Beta App Description**
