@@ -9,9 +9,11 @@ WebKit on iPadOS don't implement pointer lock. Two kinds of service use it:
 - **Create:** design tools such as Figma, for dragging number fields and
   panning without the pointer stopping at the screen edge.
 
-The app is for personal use. You sideload it with Xcode. Inside the code it's
-still called PointerLocker (Xcode project, target and bundle ID `sk.icebear.pointerlocker`),
-so an installed copy keeps its settings and sign-ins.
+You can sideload it with Xcode; to build it under your own Apple ID, change
+`DEVELOPMENT_TEAM` and `PRODUCT_BUNDLE_IDENTIFIER` in `project.yml`. The bundle
+ID is `sk.icebear.mouselook`; the Xcode project and target are still called
+PointerLocker. Copies installed before the bundle ID change are a separate app
+with their own settings and sign-ins.
 
 ## Approach
 

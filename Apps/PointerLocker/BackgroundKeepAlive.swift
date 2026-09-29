@@ -11,7 +11,7 @@ import os
 /// apps' audio, until the time is up or the app comes back.
 @MainActor
 final class BackgroundKeepAlive {
-    private let log = Logger(subsystem: "sk.icebear.pointerlocker", category: "KeepAlive")
+    private let log = Logger(subsystem: "sk.icebear.mouselook", category: "KeepAlive")
     private var engine: AVAudioEngine?
     private var timer: Timer?
 
