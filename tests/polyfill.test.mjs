@@ -609,6 +609,23 @@ await test("a native lock that arrives after the fallback is released, and the p
   await p.close();
 });
 
+await test("the polyfill's own lock error still reaches the page while a native attempt is pending", async () => {
+  const p = await nativePage("silent");
+  const r = await p.evaluate(async () => {
+    const t0 = performance.now();
+    const pending = document.getElementById("c").requestPointerLock();
+    await document.createElement("div").requestPointerLock().catch(() => {});
+    await new Promise((r) => setTimeout(r, 20));
+    const errorsSeen = window.__events.filter((e) => e === "pointerlockerror").length;
+    await pending;
+    return { errorsSeen, ms: performance.now() - t0, messages: window.__messages };
+  });
+  assert.equal(r.errorsSeen, 1, "the detached element's error reaches the page");
+  assert.ok(r.ms >= 240, `the canvas attempt ran its full course (${r.ms} ms)`);
+  assert.deepEqual(r.messages, [{ type: "lock", mode: "polyfill" }]);
+  await p.close();
+});
+
 await browser.close();
 if (failures) {
   console.log(`\n${failures} test(s) failed`);

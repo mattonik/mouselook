@@ -5,7 +5,8 @@ final class HealthCheckTests: XCTestCase {
     func testEachServiceRunsItsChecks() {
         XCTAssertEqual(ServiceProfile.geforceNow.allHealthChecks, [.desktopClient, .lockOnClick])
         XCTAssertEqual(ServiceProfile.figma.allHealthChecks, [.scrubLock])
-        XCTAssertEqual(ServiceProfile.generic.allHealthChecks, [.lockOnClick], "every Play service checks lock on click")
+        XCTAssertEqual(ServiceProfile.generic.allHealthChecks, [],
+                       "any page could be controller-only or plain video; only known streaming clients check lock on click")
     }
 
     func testThePageConfigNamesTheChecksAndReadsTheSessionPhase() {

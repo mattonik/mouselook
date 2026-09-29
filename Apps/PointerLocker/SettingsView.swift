@@ -76,6 +76,10 @@ struct SettingsView: View {
                     Button(copied ? "Copied" : "Copy diagnostics") {
                         onCopyDiagnostics()
                         copied = true
+                        Task {
+                            try? await Task.sleep(for: .seconds(2))
+                            copied = false
+                        }
                     }
                 } header: {
                     Text("Service checks")

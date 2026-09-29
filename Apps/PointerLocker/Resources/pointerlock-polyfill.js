@@ -220,7 +220,11 @@
         resolve();
       };
       const onChange = () => { if (nativeElement() === el) finish(true); };
-      const onError = (e) => { e.stopImmediatePropagation(); finish(false); };
+      const onError = (e) => {
+        if (ownEvents.has(e)) return; // the polyfill's own error, for another request
+        e.stopImmediatePropagation();
+        finish(false);
+      };
       window.addEventListener("pointerlockchange", onChange, true);
       window.addEventListener("pointerlockerror", onError, true);
       const timer = setTimeout(() => finish(nativeElement() === el), NATIVE_FALLBACK_MS);

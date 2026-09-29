@@ -51,6 +51,6 @@ extension ServiceProfile {
             start: "Start playing"
         ),
         category: .play,
-        healthChecks: [.desktopClient]
+        healthChecks: [.desktopClient, .lockOnClick]
     )
 }

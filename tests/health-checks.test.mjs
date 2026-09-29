@@ -38,24 +38,34 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 await test("desktop-client: the iPad flow is a problem", async () => {
   const p = await open(`<p>Tap Share, then Add to Home Screen</p>`,
-    `{ checks: ["desktop-client"], phase: () => 0, desktopClientOkAfterMs: 300 }`);
+    `{ checks: ["desktop-client"], phase: () => 0, desktopClientPollMs: 50 }`);
   await wait(400);
   assert.deepEqual(await health(p), [{ type: "health", check: "desktop-client", result: "problem", code: "ipad-flow" }]);
   await p.close();
 });
 
 await test("desktop-client: iPad flow appearing later is caught", async () => {
-  const p = await open(`<main></main>`, `{ checks: ["desktop-client"], phase: () => 0, desktopClientOkAfterMs: 1500 }`);
+  const p = await open(`<main></main>`, `{ checks: ["desktop-client"], phase: () => 0, desktopClientPollMs: 50 }`);
   await p.evaluate(() => setTimeout(() => { document.querySelector("main").textContent = "Add to Home Screen"; }, 100));
   await wait(900);
   assert.equal((await health(p))[0]?.result, "problem");
   await p.close();
 });
 
-await test("desktop-client: no iPad flow means ok after the wait", async () => {
-  const p = await open(`<main>Library</main>`, `{ checks: ["desktop-client"], phase: () => 0, desktopClientOkAfterMs: 300 }`);
+await test("desktop-client: a session starting proves the desktop client", async () => {
+  const p = await open(`<main>Knihovna</main>`, `{ checks: ["desktop-client"], phase: () => window.__phase || 0, desktopClientPollMs: 50 }`);
+  await wait(150);
+  assert.deepEqual(await health(p), [], "no English iPad text isn't proof of anything");
+  await p.evaluate(() => { window.__phase = 1; });
+  await wait(150);
+  assert.deepEqual(await health(p), [{ type: "health", check: "desktop-client", result: "ok", code: "session" }]);
+  await p.close();
+});
+
+await test("desktop-client: without a session or iPad text it stays unreported", async () => {
+  const p = await open(`<main>Bibliothèque</main>`, `{ checks: ["desktop-client"], phase: () => 0, desktopClientPollMs: 50 }`);
   await wait(400);
-  assert.deepEqual(await health(p), [{ type: "health", check: "desktop-client", result: "ok", code: "desktop" }]);
+  assert.deepEqual(await health(p), []);
   await p.close();
 });
 
@@ -144,16 +154,16 @@ await test("scrub-lock: a panel's resize handle doesn't count, even with number 
 });
 
 await test("a check that throws doesn't break the page or other checks", async () => {
-  const p = await open(`<main>Library</main>`,
-    `{ checks: ["desktop-client"], get phase() { throw new Error("boom"); }, desktopClientOkAfterMs: 200 }`);
+  const p = await open(`<p>Tap Share, then Add to Home Screen</p>`,
+    `{ checks: ["desktop-client"], get phase() { throw new Error("boom"); }, desktopClientPollMs: 50 }`);
   await wait(300);
-  assert.equal((await health(p))[0]?.result, "ok");
+  assert.equal((await health(p))[0]?.result, "problem");
   assert.equal(await p.evaluate(() => typeof window.__pointerLocker.batch), "function");
   await p.close();
 });
 
 await test("checks don't change the page", async () => {
-  const p = await open(`<main>Library</main>`, `{ checks: ["desktop-client"], phase: () => 0, desktopClientOkAfterMs: 100 }`);
+  const p = await open(`<main>Library</main>`, `{ checks: ["desktop-client"], phase: () => 0, desktopClientPollMs: 50 }`);
   const before = await p.evaluate(() => document.documentElement.outerHTML);
   await wait(200);
   assert.equal(await p.evaluate(() => document.documentElement.outerHTML), before);

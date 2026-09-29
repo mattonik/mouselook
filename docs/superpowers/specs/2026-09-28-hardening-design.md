@@ -87,14 +87,17 @@ Checks:
 
 | Check | Service | Problem | OK |
 |---|---|---|---|
-| `desktop-client` | GeForce NOW | The iPad/touch flow is on screen: the "Add to Home Screen" instructions or the "partially supported browser" notice | 10 s after the page loads without the iPad flow appearing |
-| `lock-on-click` | every Play service | While the session phase is 2 (streaming), two clicks in a row on the video element are each not followed by a lock request within 2 s | Any lock request while streaming |
+| `desktop-client` | GeForce NOW | The iPad/touch flow is on screen: the "Add to Home Screen" instructions or the "partially supported browser" notice | A session starts (session phase 1 or 2) |
+| `lock-on-click` | GeForce NOW (opt-in per profile) | While the session phase is 2 (streaming), two clicks in a row on the video element are each not followed by a lock request within 2 s | Any lock request while streaming |
 | `scrub-lock` | Figma | Press on a scrub control (element inside a `scrubbable` control), drag more than 3 px, and no lock request within 500 ms | A scrub that requests a lock |
 
 A "lock request" is any call to `requestPointerLock`, whichever path handles
-it. `desktop-client` matches text, so if NVIDIA rewords it the check goes quiet
-(no false alarms). `lock-on-click` is shared: it's added by the Play
-category, not written per profile.
+it. `desktop-client` matches English text, so if NVIDIA rewords it or shows
+another language the check goes quiet: it reports OK only on positive
+evidence (a session starting), never merely because the text is absent.
+`lock-on-click` is opt-in per profile: on an arbitrary page (controller-only
+games, plain video) a click that doesn't lock is normal. (Both revised after
+on-device testing and review, 2026-09-29.)
 
 Reports carry only the check id, result, code, service id and page host.
 
