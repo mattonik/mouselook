@@ -62,6 +62,19 @@ await test("desktop-client: a session starting proves the desktop client", async
   await p.close();
 });
 
+await test("desktop-client: page text is only watched for a while; a session still proves the client", async () => {
+  const p = await open(`<main></main>`,
+    `{ checks: ["desktop-client"], phase: () => window.__phase || 0, desktopClientPollMs: 50, desktopClientWatchMs: 100 }`);
+  await wait(300);
+  await p.evaluate(() => { document.querySelector("main").textContent = "Add to Home Screen"; });
+  await wait(700);
+  assert.deepEqual(await health(p), [], "text after the watch window isn't read");
+  await p.evaluate(() => { window.__phase = 1; });
+  await wait(150);
+  assert.deepEqual(await health(p), [{ type: "health", check: "desktop-client", result: "ok", code: "session" }]);
+  await p.close();
+});
+
 await test("desktop-client: without a session or iPad text it stays unreported", async () => {
   const p = await open(`<main>Bibliothèque</main>`, `{ checks: ["desktop-client"], phase: () => 0, desktopClientPollMs: 50 }`);
   await wait(400);
@@ -90,6 +103,17 @@ await test("lock-on-click: a lock request while streaming is ok, and ok wins", a
   await p.close();
 });
 
+await test("lock-on-click: misses far apart don't add up", async () => {
+  const p = await open(stream, `{ checks: ["lock-on-click"], phase: () => 2, lockWaitMs: 50, lockMissWindowMs: 200 }`);
+  await p.mouse.click(50, 50); await wait(400);
+  await p.mouse.click(60, 60); await wait(100);
+  assert.deepEqual(await health(p), [], "each miss is on its own");
+  await p.mouse.click(70, 70); await wait(100);
+  assert.deepEqual(await health(p), [{ type: "health", check: "lock-on-click", result: "problem", code: "no-request" }],
+    "two close together still count");
+  await p.close();
+});
+
 await test("lock-on-click: clicks outside a stream don't count", async () => {
   const p = await open(stream, `{ checks: ["lock-on-click"], phase: () => 0, lockWaitMs: 100 }`);
   await p.mouse.click(50, 50); await wait(150);
@@ -113,6 +137,14 @@ await test("scrub-lock: a scrub that locks is ok", async () => {
   await p.mouse.move(10, 10); await p.mouse.down(); await p.mouse.move(30, 10, { steps: 5 });
   await wait(150); await p.mouse.up();
   assert.deepEqual(await health(p), [{ type: "health", check: "scrub-lock", result: "ok", code: "locked" }]);
+  await p.close();
+});
+
+await test("scrub-lock: letting go before the wait is up doesn't count", async () => {
+  const p = await open(scrub, `{ checks: ["scrub-lock"], phase: () => 0, scrubWaitMs: 100 }`);
+  await p.mouse.move(10, 10); await p.mouse.down(); await p.mouse.move(15, 10); await p.mouse.up();
+  await wait(200);
+  assert.deepEqual(await health(p), []);
   await p.close();
 });
 

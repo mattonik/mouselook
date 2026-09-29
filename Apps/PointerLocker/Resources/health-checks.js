@@ -44,12 +44,16 @@
     // GeForce NOW: its iPad/touch flow means it didn't see a desktop browser;
     // a session starting (queue, loading or stream) proves the desktop client.
     // The iPad flow is matched in English only, so in another language the
-    // check stays quiet instead of claiming OK.
+    // check stays quiet instead of claiming OK. It shows right after loading,
+    // so the page text is only watched for a while: reading it forces a
+    // layout, and the library page changes all the time.
     "desktop-client"() {
       const ipadFlow = /Add to Home Screen|partially supported/i;
       const seen = () => !!document.body && ipadFlow.test(document.body.innerText);
       let timer = null;
-      const stop = () => { observer.disconnect(); clearInterval(timer); };
+      let watchTimer = null;
+      const stopWatching = () => { observer.disconnect(); clearTimeout(watchTimer); };
+      const stop = () => { stopWatching(); clearInterval(timer); };
       let scheduled = false;
       const observer = new MutationObserver(() => {
         if (scheduled) return;
@@ -62,6 +66,7 @@
       const start = () => {
         if (seen()) return report("desktop-client", "problem", "ipad-flow");
         observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+        watchTimer = setTimeout(stopWatching, config.desktopClientWatchMs ?? 120000);
         timer = setInterval(() => {
           if (phase() >= 1) { stop(); report("desktop-client", "ok", "session"); }
         }, config.desktopClientPollMs ?? 1000);
@@ -71,9 +76,11 @@
     },
 
     // Play services: clicking into a playing stream should make the game ask
-    // for the mouse. One miss is normal (menus); two in a row is not.
+    // for the mouse. One miss is normal (menus); two in a row, close together,
+    // is not. Misses far apart (a click in a menu now and then) don't add up.
     "lock-on-click"() {
       let misses = 0;
+      let lastMiss = -Infinity;
       let waiting = null;
       onLockRequest(() => {
         if (waiting) { clearTimeout(waiting); waiting = null; }
@@ -87,7 +94,9 @@
         if (!onVideo) return;
         waiting = setTimeout(() => {
           waiting = null;
-          misses += 1;
+          const now = performance.now();
+          misses = now - lastMiss <= (config.lockMissWindowMs ?? 30000) ? misses + 1 : 1;
+          lastMiss = now;
           if (misses >= 2) report("lock-on-click", "problem", "no-request");
         }, config.lockWaitMs ?? 2000);
       }, true);
@@ -127,7 +136,12 @@
         clearTimeout(press.timer);
         report("scrub-lock", "ok", "locked");
       });
-      window.addEventListener("pointerup", () => { press = null; }, true);
+      // Letting go before the wait is up is a click or a short nudge, which
+      // Figma may not treat as a drag: that's no sign of a problem.
+      window.addEventListener("pointerup", () => {
+        if (press) clearTimeout(press.timer);
+        press = null;
+      }, true);
       window.addEventListener("pointermove", (e) => {
         const p = press;
         if (!p || p.timer || p.requested || !(e.buttons & 1)) return;
