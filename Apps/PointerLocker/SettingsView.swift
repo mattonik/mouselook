@@ -19,6 +19,14 @@ struct SettingsView: View {
     @State private var debugHUD = Settings.debugHUD
     @State private var copied = false
 
+    private static let websiteURL = URL(string: "https://icebear.digital/mouselook")!
+    private static let sourceURL = URL(string: "https://github.com/mattonik/mouselook")!
+
+    private static var version: String {
+        let info = Bundle.main.infoDictionary ?? [:]
+        return "\(info["CFBundleShortVersionString"] as? String ?? "?") (\(info["CFBundleVersion"] as? String ?? "?"))"
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -85,6 +93,15 @@ struct SettingsView: View {
                     Text("Service checks")
                 } footer: {
                     Text("Mouselook watches for signs that the service changed how it treats this browser. Diagnostics stay on this iPad until you copy them.")
+                }
+                Section {
+                    LabeledContent("Version", value: Self.version)
+                    Link("Website", destination: Self.websiteURL)
+                    Link("Source code on GitHub", destination: Self.sourceURL)
+                } header: {
+                    Text("About")
+                } footer: {
+                    Text("Mouselook is open source under the Apache License 2.0, made by IceBear. Links open in Safari.")
                 }
             }
             .navigationTitle("Settings")
