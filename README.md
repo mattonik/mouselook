@@ -4,10 +4,12 @@ An iPad browser, built on the system WKWebView, that gives web pages a working
 **Pointer Lock API**, so a mouse works the way it does on a computer. Safari and
 WebKit on iPadOS don't implement pointer lock. Two kinds of service use it:
 
+- **Create:** design tools such as Figma, for dragging number fields past the
+  screen edge. Figma sees a desktop browser, so its keyboard shortcuts work
+  too: Space + drag pans the canvas, ⌘ + scroll zooms. More browser-based
+  design tools will follow as they're tested.
 - **Play:** cloud games such as GeForce NOW (`play.geforcenow.com`), for
   mouse-look: aiming and looking around.
-- **Create:** design tools such as Figma, for dragging number fields and
-  panning without the pointer stopping at the screen edge.
 
 **Website:** [icebear.digital/mouselook](https://icebear.digital/mouselook).
 The app is free to build from this repository, and is coming to the App Store
