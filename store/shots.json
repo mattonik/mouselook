@@ -20,10 +20,10 @@
       "subtitle": "Each one reopens where you left off."
     },
     {
-      "id": "04-game",
-      "raw": "game.png",
-      "title": "Aim with your mouse in cloud games",
-      "subtitle": "The mouse turns the camera until you hold Esc."
+      "id": "04-welcome",
+      "raw": "welcome.png",
+      "title": "For design tools and cloud games",
+      "subtitle": "Pick Create or Play. One app does both."
     },
     {
       "id": "05-get-ready",
