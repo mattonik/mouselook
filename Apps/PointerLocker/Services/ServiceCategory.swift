@@ -14,7 +14,7 @@ enum ServiceCategory: CaseIterable {
     var summary: String {
         switch self {
         case .play: "Aim and look around in cloud games."
-        case .create: "Drag, scrub and pan in design tools."
+        case .create: "Pan, zoom and use shortcuts in design tools."
         }
     }
 

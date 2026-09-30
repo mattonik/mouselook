@@ -23,10 +23,16 @@ extension ServiceProfile {
         ),
         setupTips: [
             SetupTip(
+                id: "navigate",
+                symbol: "arrow.up.and.down.and.arrow.left.and.right",
+                title: "Use Figma as on a computer",
+                detail: "Space + drag pans, ⌘ + scroll zooms and Shift + scroll moves sideways. Right-click and keyboard shortcuts work too."
+            ),
+            SetupTip(
                 id: "scrub",
                 symbol: "arrow.left.and.right",
                 title: "Drag a number's label to change it",
-                detail: "The pointer locks while you drag, so the value keeps changing past the edge of the screen. Space + drag moves the canvas."
+                detail: "The pointer locks while you drag, so the value keeps changing past the edge of the screen."
             ),
             SetupTip(
                 id: "session",
@@ -36,7 +42,7 @@ extension ServiceProfile {
             ),
         ],
         wording: ServiceWording(
-            mouseNeeded: "Figma needs a mouse or trackpad to drag and scrub values. Touch alone won't work.",
+            mouseNeeded: "Figma needs a mouse or trackpad to pan, right-click and drag values. Touch alone won't work.",
             mouseTest: "Move it and watch the check mark. If it reacts, Figma can see the mouse too.",
             keyboardReady: "Ready for shortcuts.",
             lockReady: "The pointer can lock while you drag.",

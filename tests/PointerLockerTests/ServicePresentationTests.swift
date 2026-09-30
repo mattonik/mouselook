@@ -27,6 +27,10 @@ final class ServicePresentationTests: XCTestCase {
         XCTAssertEqual(tip?.title, "Set the stream to 1920×1080")
     }
 
+    func testFigmaLeadsWithDesktopNavigation() {
+        XCTAssertEqual(ServiceProfile.figma.setupTips.first?.id, "navigate")
+    }
+
     func testFigmaTellsYouHowToScrub() {
         let tip = ServiceProfile.figma.setupTips.first { $0.id == "scrub" }
         XCTAssertEqual(tip?.title, "Drag a number's label to change it")
