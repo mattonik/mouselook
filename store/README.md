@@ -16,7 +16,10 @@ show accounts and files, and the public repository shouldn't carry them.
 3. **Previews:** record on the iPad (Control Center ▸ Screen Recording), then
    `tools/app-store/preview.sh <recording> <start> <end> <name>` writes
    `store/out/preview-<name>.mp4` (1600 x 1200, 30 fps, H.264, stereo AAC,
-   15 to 30 s).
+   15 to 30 s). For a take with several good moments,
+   `tools/app-store/preview-cut.sh <recording> <name> <from-to>...` joins
+   segments with straight cuts; `WEB=1` makes the website version instead
+   (1280 x 960, silent, any length, with a poster frame).
 
 Before uploading, check each image for personal data: names, team names, file
 names, email addresses.
