@@ -13,7 +13,7 @@ repository.
   (the website's Privacy entry links to the same file)
 - **Price:** USD 9.99, one-time, no in-app purchases
 
-The website's TestFlight sign-up is an email to martin@icebear.sk; add the
+The website's TestFlight sign-up is an email to mouselook@icebear.sk; add the
 Apple ID emails from those messages as external testers.
 
 ## TestFlight ▸ Test Information
@@ -37,7 +37,7 @@ mouse or trackpad and a keyboard.
 5. If something doesn't work: ⋯ ▸ Settings ▸ Copy diagnostics, and send it
    with your feedback.
 
-**Feedback email:** [your address]
+**Feedback email:** mouselook@icebear.sk
 
 ## App Review ▸ Notes
 

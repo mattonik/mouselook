@@ -1,7 +1,7 @@
 # Security
 
 Please report security problems privately by email to
-[martin@icebear.sk](mailto:martin@icebear.sk), not in a public issue. You'll get
+[mouselook@icebear.sk](mailto:mouselook@icebear.sk), not in a public issue. You'll get
 an answer within a few days.
 
 Useful to know when looking:
