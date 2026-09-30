@@ -1,7 +1,7 @@
 /// The two worlds Mouselook serves, shown side by side on Welcome and as
-/// headings in the chooser: cloud games, and design and 3D tools.
+/// headings in the chooser: design and 3D tools first, then cloud games.
 enum ServiceCategory: CaseIterable {
-    case play, create
+    case create, play
 
     var title: String {
         switch self {
@@ -14,7 +14,7 @@ enum ServiceCategory: CaseIterable {
     var summary: String {
         switch self {
         case .play: "Aim and look around in cloud games."
-        case .create: "Drag, scrub and pan in design tools."
+        case .create: "Pan, zoom and use shortcuts in design tools."
         }
     }
 
@@ -42,7 +42,7 @@ enum ServiceCategory: CaseIterable {
         services.filter { $0.category == self }.map(\.name).joined(separator: ", ")
     }
 
-    /// Services grouped by world, Play first; worlds without services are left out.
+    /// Services grouped by world, Create first; worlds without services are left out.
     static func groups(of services: [ServiceProfile]) -> [(category: ServiceCategory, services: [ServiceProfile])] {
         allCases.compactMap { category in
             let members = services.filter { $0.category == category }

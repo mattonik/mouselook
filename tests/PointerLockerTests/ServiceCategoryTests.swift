@@ -7,10 +7,11 @@ final class ServiceCategoryTests: XCTestCase {
         XCTAssertEqual(ServiceProfile.figma.category, .create)
     }
 
-    func testTheChooserGroupsPlayBeforeCreateAndHidesEmptyGroups() {
-        let groups = ServiceCategory.groups(of: [.figma, .geforceNow])
-        XCTAssertEqual(groups.map(\.category), [.play, .create])
-        XCTAssertEqual(groups.map { $0.services.map(\.id) }, [["geforcenow"], ["figma"]])
+    func testCreateLeadsOnWelcomeAndInTheChooser() {
+        XCTAssertEqual(ServiceCategory.allCases, [.create, .play])
+        let groups = ServiceCategory.groups(of: [.geforceNow, .figma])
+        XCTAssertEqual(groups.map(\.category), [.create, .play])
+        XCTAssertEqual(groups.map { $0.services.map(\.id) }, [["figma"], ["geforcenow"]])
         XCTAssertEqual(ServiceCategory.groups(of: [.figma]).map(\.category), [.create], "no empty Play heading")
     }
 

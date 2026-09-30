@@ -68,7 +68,7 @@ struct ServiceProfile {
     static let all: [ServiceProfile] = [.geforceNow, .figma, .generic]
 
     /// What onboarding and Settings offer. `generic` stays internal.
-    static let selectable: [ServiceProfile] = [.geforceNow, .figma]
+    static let selectable: [ServiceProfile] = [.figma, .geforceNow]
 
     static func profile(id: String) -> ServiceProfile? {
         all.first { $0.id == id }

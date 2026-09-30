@@ -45,10 +45,10 @@ final class ServiceMenuTests: XCTestCase {
 
     func testTheMenuListsTheServicesAndMarksTheCurrentOne() {
         let entries = ServiceSwitch.menuEntries(current: "figma")
-        XCTAssertEqual(entries.map(\.name), ["GeForce NOW", "Figma"])
-        XCTAssertEqual(entries.map(\.subtitle), ["Play", "Create"])
-        XCTAssertEqual(entries.map(\.isCurrent), [false, true])
-        XCTAssertEqual(entries.map(\.symbol), [ServiceProfile.geforceNow.artwork.symbol, ServiceProfile.figma.artwork.symbol])
+        XCTAssertEqual(entries.map(\.name), ["Figma", "GeForce NOW"])
+        XCTAssertEqual(entries.map(\.subtitle), ["Create", "Play"])
+        XCTAssertEqual(entries.map(\.isCurrent), [true, false])
+        XCTAssertEqual(entries.map(\.symbol), [ServiceProfile.figma.artwork.symbol, ServiceProfile.geforceNow.artwork.symbol])
     }
 
     func testNoServicesSectionWithOnlyOneService() {

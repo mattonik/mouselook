@@ -3,8 +3,8 @@ import XCTest
 @testable import PointerLocker
 
 final class ServicePresentationTests: XCTestCase {
-    func testOnboardingOffersGeForceNowAndFigmaButNotTheGenericProfile() {
-        XCTAssertEqual(ServiceProfile.selectable.map(\.id), ["geforcenow", "figma"])
+    func testOnboardingOffersFigmaThenGeForceNowButNotTheGenericProfile() {
+        XCTAssertEqual(ServiceProfile.selectable.map(\.id), ["figma", "geforcenow"])
     }
 
     func testEverySelectableServiceCanBePresented() {
@@ -25,6 +25,10 @@ final class ServicePresentationTests: XCTestCase {
     func testGeForceNowTellsYouToUse1080p() {
         let tip = ServiceProfile.geforceNow.setupTips.first { $0.id == "resolution" }
         XCTAssertEqual(tip?.title, "Set the stream to 1920×1080")
+    }
+
+    func testFigmaLeadsWithDesktopNavigation() {
+        XCTAssertEqual(ServiceProfile.figma.setupTips.first?.id, "navigate")
     }
 
     func testFigmaTellsYouHowToScrub() {

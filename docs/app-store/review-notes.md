@@ -20,21 +20,26 @@ Apple ID emails from those messages as external testers.
 
 **Beta App Description**
 
-Mouselook lets web apps on iPad use the mouse the way they do on a desktop:
-dragging number fields in Figma keeps going past the screen edge, and games in
-GeForce NOW can capture the mouse for camera control. Needs an iPad with a
+Mouselook lets you use Figma on iPad the way you do on a computer: Space + drag
+pans, ⌘ + scroll zooms, right-click and keyboard shortcuts work, and dragging a
+number field keeps going past the screen edge. Games in GeForce NOW can capture
+the mouse for camera control. Needs an iPad with a
 mouse or trackpad and a keyboard.
 
 **What to Test**
 
 1. Pick Figma in onboarding, sign in, open one of your files.
-2. Drag a number field label (X, Y, W, rotation) past the screen edge. The
+2. Hold Space and drag to pan, hold ⌘ and scroll to zoom, and hold Shift and
+   scroll to move sideways.
+3. Use the keyboard and mouse as on a computer: V, R, T, ⌘D, ⌘G, right-click
+   for the context menu, Shift + click to select several layers, ⌥ + drag to
+   duplicate.
+4. Drag a number field label (X, Y, W, rotation) past the screen edge. The
    value keeps changing instead of stopping at the edge.
-3. Hold ⌘ and scroll to zoom. Switch to GeForce NOW from the ⋯ menu and back;
-   the Figma file reopens.
-4. In GeForce NOW, start a game and click into it. The mouse turns the camera
+5. Switch to GeForce NOW from the ⋯ menu and back; the Figma file reopens.
+6. In GeForce NOW, start a game and click into it. The mouse turns the camera
    until you hold Esc for a second.
-5. If something doesn't work: ⋯ ▸ Settings ▸ Copy diagnostics, and send it
+7. If something doesn't work: ⋯ ▸ Settings ▸ Copy diagnostics, and send it
    with your feedback.
 
 **Feedback email:** mouselook@icebear.sk
