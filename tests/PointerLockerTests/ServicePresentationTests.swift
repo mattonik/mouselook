@@ -3,8 +3,8 @@ import XCTest
 @testable import PointerLocker
 
 final class ServicePresentationTests: XCTestCase {
-    func testOnboardingOffersGeForceNowAndFigmaButNotTheGenericProfile() {
-        XCTAssertEqual(ServiceProfile.selectable.map(\.id), ["geforcenow", "figma"])
+    func testOnboardingOffersFigmaThenGeForceNowButNotTheGenericProfile() {
+        XCTAssertEqual(ServiceProfile.selectable.map(\.id), ["figma", "geforcenow"])
     }
 
     func testEverySelectableServiceCanBePresented() {

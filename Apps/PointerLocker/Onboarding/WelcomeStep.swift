@@ -1,8 +1,20 @@
 import SwiftUI
 
+/// When Welcome's two cards stack instead of sitting side by side: only for
+/// accessibility text sizes and narrow windows. Measuring whether the text
+/// fits on one line (ViewThatFits) stacked them on a full iPad as soon as a
+/// summary grew longer than half the width.
+enum WelcomeLayout {
+    static func stacksCards(dynamicTypeSize: DynamicTypeSize, horizontalSizeClass: UserInterfaceSizeClass?) -> Bool {
+        dynamicTypeSize.isAccessibilitySize || horizontalSizeClass == .compact
+    }
+}
+
 struct WelcomeStep: View {
     let services: [ServiceProfile]
     let onContinue: () -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
         // Scrolls when the text doesn't fit (a small window at a large text
@@ -23,12 +35,13 @@ struct WelcomeStep: View {
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .frame(maxWidth: 520)
-                    // Play and Create side by side, stacked when the text is large.
-                    // Cards as tall as their text, and as tall as each other.
-                    ViewThatFits(in: .horizontal) {
-                        HStack(alignment: .top, spacing: 16) { worldCards }
-                        VStack(spacing: 16) { worldCards }
-                    }
+                    // Create and Play side by side, stacked when the text is large
+                    // or the window narrow. Cards as tall as their text, and as
+                    // tall as each other.
+                    let layout = WelcomeLayout.stacksCards(dynamicTypeSize: dynamicTypeSize, horizontalSizeClass: horizontalSizeClass)
+                        ? AnyLayout(VStackLayout(spacing: 16))
+                        : AnyLayout(HStackLayout(alignment: .top, spacing: 16))
+                    layout { worldCards }
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: 640)
                 }
