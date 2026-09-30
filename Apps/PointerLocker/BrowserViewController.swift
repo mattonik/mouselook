@@ -41,6 +41,7 @@ final class BrowserViewController: UIViewController {
 
     private var pageWantsLock = false
     private var systemLocked = false
+    private var lastUnlock: Date?
     private var observers: [NSObjectProtocol] = []
 
     override var prefersPointerLocked: Bool { pageWantsLock }
@@ -202,11 +203,15 @@ final class BrowserViewController: UIViewController {
         UIView.animate(withDuration: 0.2) { self.menuButton.alpha = locked ? 0 : 0.6 }
 
         if locked {
+            let sinceUnlock = lastUnlock.map { Date().timeIntervalSince($0) }
             // UIKit only honours pointer lock for a full-screen, frontmost scene.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) { [weak self] in
                 guard let self, self.pageWantsLock, !self.isSystemPointerLocked else { return }
                 self.toast.show("The pointer isn't locked, so it can leave the page. Make the app full screen to lock it.")
+                DiagnosticsLog.shared.record("lock-refused", self.lockRefusalDetail(sinceUnlock: sinceUnlock))
             }
+        } else {
+            lastUnlock = Date()
         }
     }
 
@@ -215,6 +220,16 @@ final class BrowserViewController: UIViewController {
         guard pageWantsLock else { return }
         webView.evaluateJavaScript("window.__pointerLocker&&window.__pointerLocker.forceUnlock()", completionHandler: nil)
         setPageLock(false)
+    }
+
+    private func lockRefusalDetail(sinceUnlock: TimeInterval?) -> String {
+        let scene = view.window?.windowScene
+        let window = view.window?.bounds.size ?? .zero
+        let screen = scene?.screen.bounds.size ?? .zero
+        let fullScreen = window == screen || window == CGSize(width: screen.height, height: screen.width)
+        return LockRefusal.detail(sceneActive: scene?.activationState == .foregroundActive,
+                                  screenCaptured: scene?.traitCollection.sceneCaptureState == .active,
+                                  fullScreen: fullScreen, sinceLastUnlock: sinceUnlock)
     }
 
     private var isSystemPointerLocked: Bool {
