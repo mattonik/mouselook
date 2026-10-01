@@ -11,7 +11,7 @@ repository.
   issues and email)
 - **Privacy Policy URL:** https://github.com/mattonik/mouselook/blob/main/docs/app-store/privacy-policy.md
   (the website's Privacy entry links to the same file)
-- **Price:** USD 9.99, one-time, no in-app purchases
+- **Price:** €9.99, one-time, no in-app purchases
 
 The website's beta button is the TestFlight public link
 (https://testflight.apple.com/join/UxsMy829) of the external testing group.
