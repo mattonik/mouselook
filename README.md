@@ -18,7 +18,7 @@ WebKit on iPadOS don't implement pointer lock. Two kinds of service use it:
 
 **Website:** [icebear.digital/mouselook](https://icebear.digital/mouselook).
 The app is free to build from this repository, and is coming to the App Store
-as a $9.99 one-time purchase. To join the TestFlight beta, see the website.
+as a €9.99 one-time purchase. To join the TestFlight beta, see the website.
 
 <p>
   <img src="docs/images/01-figma.jpg" width="32%" alt="Figma on iPad in Mouselook">
