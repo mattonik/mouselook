@@ -13,8 +13,10 @@ repository.
   (the website's Privacy entry links to the same file)
 - **Price:** USD 9.99, one-time, no in-app purchases
 
-The website's TestFlight sign-up is an email to mouselook@icebear.sk; add the
-Apple ID emails from those messages as external testers.
+The website's beta button is the TestFlight public link
+(https://testflight.apple.com/join/UxsMy829) of the external testing group.
+Its tester limit keeps the beta small; raise it in App Store Connect to let
+more people in.
 
 ## TestFlight ▸ Test Information
 
