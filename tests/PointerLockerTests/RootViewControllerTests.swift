@@ -24,7 +24,7 @@ final class RootViewControllerTests: XCTestCase {
         super.tearDown()
     }
 
-    func testTheSetupGuideLeavesTheGameInTheWindow() throws {
+    func testTheSetupGuideLeavesTheGameInTheWindow() async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
         window = UIWindow(windowScene: scene)
         let root = RootViewController()
@@ -33,13 +33,12 @@ final class RootViewControllerTests: XCTestCase {
         let browser = try XCTUnwrap(root.browser, "a chosen service opens the browser")
 
         root.showSetupGuide()
-        let presented = expectation(description: "setup guide presented")
-        func check() {
-            if root.presentedViewController?.isBeingPresented == false { presented.fulfill() }
-            else { DispatchQueue.main.asyncAfter(deadline: .now() + 0.05, execute: check) }
+        // Wait for the presentation to finish, polling on the main actor.
+        let deadline = Date().addingTimeInterval(5)
+        while root.presentedViewController?.isBeingPresented != false {
+            guard Date() < deadline else { return XCTFail("setup guide not presented within 5 s") }
+            try await Task.sleep(for: .milliseconds(50))
         }
-        check()
-        wait(for: [presented], timeout: 5)
 
         XCTAssertNotNil(browser.view.window, "a game under the guide must keep running, not go hidden")
         XCTAssertNil(root.childViewControllerForPointerLock, "the game can't take the pointer from the guide")

@@ -249,10 +249,10 @@ final class BrowserViewController: UIViewController {
             self?.forceUnlock()
         })
         observers.append(center.addObserver(forName: UIScene.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
-            self?.sessionKeeper.didEnterBackground()
+            MainActor.assumeIsolated { self?.sessionKeeper.didEnterBackground() }
         })
         observers.append(center.addObserver(forName: UIScene.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
-            self?.sessionKeeper.willEnterForeground()
+            MainActor.assumeIsolated { self?.sessionKeeper.willEnterForeground() }
         })
     }
 
