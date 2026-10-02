@@ -95,6 +95,7 @@ targets:
       - target: PointerLocker
     settings:
       base:
+        TARGETED_DEVICE_FAMILY: "2"
         PRODUCT_BUNDLE_IDENTIFIER: sk.icebear.mouselooktests
         GENERATE_INFOPLIST_FILE: YES
 
@@ -105,6 +106,7 @@ targets:
       - path: Apps/MouseLockPrototype
     settings:
       base:
+        TARGETED_DEVICE_FAMILY: "2"
         PRODUCT_BUNDLE_IDENTIFIER: sk.icebear.mouselockprototype
     info:
       path: Apps/MouseLockPrototype/Info.plist
