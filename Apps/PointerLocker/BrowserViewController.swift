@@ -348,6 +348,12 @@ final class BrowserViewController: UIViewController {
 // MARK: - Page messages
 
 extension BrowserViewController: WKScriptMessageHandler {
+    /// Shown when a page asks for a passkey or security key (the polyfill
+    /// hides WebAuthn, which WKWebView can't run without Apple's browser
+    /// entitlement).
+    static let passkeyNotice = "Passkeys and security keys don't work in Mouselook. "
+        + "Choose another way to sign in, such as a code from your authenticator app or a prompt on your phone."
+
     func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
         guard message.frameInfo.isMainFrame,
               let body = message.body as? [String: Any],
@@ -361,6 +367,14 @@ extension BrowserViewController: WKScriptMessageHandler {
         case "health":
             health.receive(check: body["check"] as? String ?? "", result: body["result"] as? String ?? "",
                            code: body["code"] as? String ?? "", host: webView.url?.host ?? "", locked: pageWantsLock)
+        case "webauthn":
+            // Sign-in often runs in a popup sheet, which would hide our toast.
+            if message.webView !== webView,
+               let popup = (presentedViewController as? UINavigationController)?.viewControllers.first as? PopupViewController {
+                popup.toast.show(Self.passkeyNotice)
+            } else {
+                toast.show(Self.passkeyNotice)
+            }
         default: break
         }
     }
