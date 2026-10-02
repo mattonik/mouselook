@@ -27,8 +27,10 @@ final class ReadinessMonitor {
     @ObservationIgnored private var observers: [NSObjectProtocol] = []
     @ObservationIgnored private var timer: Timer?
 
-    init(hub: MouseEventHub = .shared, clock: @escaping () -> TimeInterval = CACurrentMediaTime) {
-        self.hub = hub
+    /// `hub` defaults to `.shared`, resolved here rather than as a default
+    /// argument, which Swift evaluates off the main actor.
+    init(hub: MouseEventHub? = nil, clock: @escaping () -> TimeInterval = CACurrentMediaTime) {
+        self.hub = hub ?? .shared
         self.clock = clock
     }
 
