@@ -1,4 +1,3 @@
-import os
 import XCTest
 @testable import PointerLocker
 
@@ -75,14 +74,13 @@ final class ReadinessMonitorTests: XCTestCase {
         let screen = CGSize(width: 1024, height: 1366)
         monitor.update(mouseCount: 1)
         monitor.update(windowSize: screen, screenSize: screen)
-        // onChange is @Sendable, so it counts through a lock, not a captured var.
-        let changes = OSAllocatedUnfairLock(initialState: 0)
+        var changes = 0
         withObservationTracking {
             _ = (monitor.mouse, monitor.keyboard, monitor.display)
-        } onChange: { changes.withLock { $0 += 1 } }
+        } onChange: { changes += 1 }
         monitor.tick(at: 100)
         monitor.update(windowSize: screen, screenSize: screen)
         monitor.update(keyboardConnected: false)
-        XCTAssertEqual(changes.withLock { $0 }, 0)
+        XCTAssertEqual(changes, 0)
     }
 }

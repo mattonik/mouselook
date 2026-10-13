@@ -53,10 +53,7 @@ final class MouseBridge {
     private let hub: MouseEventHub
     private var hubToken: MouseEventHub.Token?
 
-    /// `hub` defaults to `.shared`, resolved here rather than as a default
-    /// argument, which Swift evaluates off the main actor.
-    init(usesDisplayLink: Bool = true, hub: MouseEventHub? = nil) {
-        let hub = hub ?? .shared
+    init(usesDisplayLink: Bool = true, hub: MouseEventHub = .shared) {
         self.hub = hub
         hubToken = hub.addListener { [weak self] event in
             guard let self else { return }
