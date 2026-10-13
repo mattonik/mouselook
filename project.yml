@@ -61,9 +61,6 @@ targets:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationPortraitUpsideDown
         NSMicrophoneUsageDescription: For voice chat in games. The app asks before a site can use it.
-        # Keeps a stream alive for a while in the background (⋯ ▸ Settings… ▸
-        # Keep game running in background); the app pauses media when that time is up.
-        UIBackgroundModes: [audio]
         # Only used by Debug builds (DebugBridge) to reach a developer Mac; the
         # "Remove debug-only Info.plist keys" phase deletes these four from
         # every other configuration.

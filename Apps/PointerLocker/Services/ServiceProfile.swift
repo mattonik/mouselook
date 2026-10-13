@@ -38,10 +38,18 @@ struct BrowserIdentity: Equatable {
     )
 }
 
+/// Where a service's session is, read from the page by `sessionPhaseScript`.
+/// A running session makes switching services ask first.
+enum StreamPhase: Int {
+    case none = 0     // library, sign-in, …
+    case starting = 1 // in the queue or loading the game
+    case playing = 2  // a stream is playing
+}
+
 /// Everything specific to one streaming service ("engine"): where it lives,
 /// which browser it needs to see, and how to tell that a session is running.
-/// The rest of the app (pointer lock, fullscreen emulation, mouse input,
-/// background keep-alive) is shared by all of them.
+/// The rest of the app (pointer lock, fullscreen emulation, mouse input) is
+/// shared by all of them.
 ///
 /// Adding a service: define a profile in its own file (see
 /// GeForceNowProfile.swift) and list it in `all`.
@@ -51,7 +59,7 @@ struct ServiceProfile {
     let homeURL: URL
     let identity: BrowserIdentity
     /// JavaScript evaluating to the session phase:
-    /// 0 none, 1 queued or loading, 2 streaming (see BackgroundSessionKeeper).
+    /// 0 none, 1 queued or loading, 2 streaming (see StreamPhase).
     let sessionPhaseScript: String
     /// One line under the name on the service card.
     let tagline: String

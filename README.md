@@ -128,19 +128,16 @@ NOW, Figma): pick one to switch straight to it. Each service reopens the page yo
 were last on, such as the open Figma file; a running game asks before you leave.
 Below that are Back, Reload, Home, Open URL and **Settings…**: switch service
 (with the setup guide), show the setup guide again, mouse sensitivity, invert
-Y-axis, background keep-alive, microphone, browser identity, the debug overlay,
+Y-axis, microphone, browser identity, the debug overlay,
 service checks, and About (version, links to the website and this
 repository). The button hides while the pointer is locked.
 
 **Switching apps mid-game.** iPadOS suspends an app within seconds of leaving
-it, which drops the stream and ends the session. Mouselook keeps itself
-running in the background during a session. While you wait in the queue or the
-game loads, it keeps running until the game starts, for up to 30 minutes. While
-a stream plays, it keeps running for 5 minutes by default (⋯ ▸ Settings… ▸ Keep game
-running in background: Off / 1 / 5 / 15 minutes). It does this by playing silence,
-since WebKit pauses a quiet stream in the background. When the time is up it
-pauses the stream so the system can suspend the app. GeForce NOW still needs a
-tap on Resume when you come back.
+it, which drops the stream, so leaving Mouselook mid-game can end the session.
+Mouselook pauses media when you leave. Earlier builds kept the app running in
+the background by playing silence; App Review doesn't allow that (guideline
+2.5.4), so it was removed. [docs/background-keep-alive.md](docs/background-keep-alive.md)
+has how it worked, in case it comes back in an allowed form.
 
 **Volume won't go to zero?** If you allowed the microphone, WebKit uses the
 voice-call audio mode, in which iPadOS keeps a minimum volume. Set ⋯ ▸ Settings… ▸
@@ -227,7 +224,6 @@ builds and tests the app.
 | `Resources/pointerlock-polyfill.js` | Pointer Lock and Fullscreen APIs in the page. It applies the profile's identity, including inside Web Workers, and turns native input into DOM events. |
 | `MouseBridge.swift` | Raw GCMouse input to the page, one batch per frame, never more than one in flight. |
 | `BrowserViewController*.swift` | The web view and lock state (+Menu, +WebUI for popups, dialogs and permissions). |
-| `BackgroundSessionKeeper.swift`, `BackgroundKeepAlive.swift` | Keeping a session alive across app switches. |
 | `PageRecovery.swift`, `StatusOverlayView.swift` | Crashes, failed loads and going offline. |
 | `DebugHUDFeeder.swift`, `Resources/debug-hud.js`, `DebugBridge.swift` | The debug overlay, and the Mac-side JavaScript console (Debug builds only). |
 

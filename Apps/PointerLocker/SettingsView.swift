@@ -13,7 +13,6 @@ struct SettingsView: View {
 
     @State private var sensitivity = Settings.sensitivity
     @State private var invertY = Settings.invertY
-    @State private var keepAlive = Settings.backgroundKeepAlive
     @State private var microphone = Settings.microphone
     @State private var useIdentity = Settings.useServiceIdentity
     @State private var debugHUD = Settings.debugHUD
@@ -45,16 +44,11 @@ struct SettingsView: View {
                 }
                 if service.category.hasGameSession {
                     Section {
-                        Picker("Keep game running in background", selection: $keepAlive) {
-                            ForEach(Settings.backgroundKeepAlivePresets, id: \.seconds) { Text($0.title).tag($0.seconds) }
-                        }
                         Picker("Microphone", selection: $microphone) {
                             ForEach(MicrophoneAccess.allCases, id: \.self) { Text($0.title).tag($0) }
                         }
                     } header: {
                         Text("Game session")
-                    } footer: {
-                        Text("Keeping the game running lets you switch apps briefly without losing your session.")
                     }
                 }
                 Section {
@@ -110,7 +104,6 @@ struct SettingsView: View {
         }
         .onChange(of: sensitivity) { Settings.sensitivity = sensitivity }
         .onChange(of: invertY) { Settings.invertY = invertY }
-        .onChange(of: keepAlive) { Settings.backgroundKeepAlive = keepAlive }
         .onChange(of: microphone) { Settings.microphone = microphone }
         .onChange(of: useIdentity) { Settings.useServiceIdentity = useIdentity }
         .onChange(of: debugHUD) { Settings.debugHUD = debugHUD }
