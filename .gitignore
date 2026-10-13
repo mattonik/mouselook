@@ -24,3 +24,6 @@ store/*.png
 
 # Business planning stays local
 docs/launch-plan.md
+
+# Local-only drafts: marketing copy, outreach, App Review mail
+private/
