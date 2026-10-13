@@ -39,7 +39,7 @@ extension ServiceProfile {
                 id: "session",
                 symbol: "person.crop.circle.badge.checkmark",
                 title: "Sign in with a password or email code",
-                detail: "Passkeys don't work in this app. You'll stay signed in after the first time."
+                detail: "Passkeys and security keys don't work in this app. If two-step sign-in asks for one, choose another way, such as a code. You'll stay signed in after the first time."
             ),
         ],
         wording: ServiceWording(

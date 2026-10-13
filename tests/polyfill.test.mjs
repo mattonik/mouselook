@@ -680,6 +680,80 @@ await test("the polyfill's own lock error still reaches the page while a native 
   await p.close();
 });
 
+// Passkeys and security keys: WKWebView can't run WebAuthn in this app, so
+// the polyfill hides it and turns any request into a quick, explained failure.
+// WebAuthn exists only in secure contexts, so serve the page from https.
+async function webauthnPage(before = "") {
+  const p = await browser.newPage();
+  await p.route("https://signin.test/**", (route) =>
+    route.fulfill({ contentType: "text/html", body: "<p>sign in</p>" }));
+  await p.addInitScript({ content: noNativeLock + stub + identity + before });
+  await p.addInitScript({ content: polyfill });
+  await p.goto("https://signin.test/");
+  return p;
+}
+
+await test("WebAuthn is hidden from the page", async () => {
+  const p = await webauthnPage();
+  const r = await p.evaluate(() => ({
+    secure: window.isSecureContext,
+    type: typeof window.PublicKeyCredential,
+    present: "PublicKeyCredential" in window,
+  }));
+  assert.deepEqual(r, { secure: true, type: "undefined", present: false });
+  await p.close();
+});
+
+await test("a passkey request fails at once and tells the app, once per page", async () => {
+  const p = await webauthnPage();
+  const r = await p.evaluate(async () => {
+    const publicKey = { challenge: new Uint8Array(16), timeout: 60000 };
+    const errors = [];
+    for (const call of [() => navigator.credentials.get({ publicKey }),
+                        () => navigator.credentials.create({ publicKey }),
+                        () => navigator.credentials.get({ publicKey })]) {
+      try { await call(); errors.push("resolved"); } catch (e) { errors.push(e.name); }
+    }
+    return { errors, messages: window.__messages };
+  });
+  assert.deepEqual(r.errors, ["NotAllowedError", "NotAllowedError", "NotAllowedError"]);
+  assert.deepEqual(r.messages, [{ type: "webauthn" }]);
+  await p.close();
+});
+
+await test("passkey autofill (conditional mediation) fails quietly", async () => {
+  const p = await webauthnPage();
+  const r = await p.evaluate(async () => {
+    let error;
+    try {
+      await navigator.credentials.get({ publicKey: { challenge: new Uint8Array(16) }, mediation: "conditional" });
+    } catch (e) { error = e.name; }
+    return { error, messages: window.__messages };
+  });
+  assert.equal(r.error, "NotAllowedError");
+  assert.deepEqual(r.messages, []);
+  await p.close();
+});
+
+await test("other credential requests still reach the browser", async () => {
+  // Stand in for the browser's own get(), installed before the polyfill wraps it.
+  const p = await webauthnPage(`
+    window.__seen = [];
+    CredentialsContainer.prototype.get = function (options) {
+      window.__seen.push(Object.keys(options));
+      return Promise.resolve(null);
+    };`);
+  const r = await p.evaluate(async () => ({
+    result: await navigator.credentials.get({ password: true }),
+    seen: window.__seen,
+    messages: window.__messages,
+  }));
+  assert.equal(r.result, null);
+  assert.deepEqual(r.seen, [["password"]]);
+  assert.deepEqual(r.messages, []);
+  await p.close();
+});
+
 await browser.close();
 if (failures) {
   console.log(`\n${failures} test(s) failed`);

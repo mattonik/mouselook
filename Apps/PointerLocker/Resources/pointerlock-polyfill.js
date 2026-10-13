@@ -13,6 +13,8 @@
 //   page -> native: webkit.messageHandlers.pointerLocker.postMessage({type})
 //     {type: "lock"}    page called requestPointerLock()
 //     {type: "unlock"}  lock ended (exitPointerLock, hold-Esc, detach, ...)
+//     {type: "webauthn"} the page asked for a passkey or security key, which
+//                        WKWebView can't provide here (once per page)
 //   native -> page: window.__pointerLocker.batch([[kind, ...args], ...])
 //     ["m", dx, dy]         relative movement (CSS px, y down)
 //     ["b", button, down]   button 0 = primary, 1 = middle, 2 = secondary
@@ -49,6 +51,36 @@
   const nativeElement = () => {
     try { return native.element ? native.element.call(document) : null; } catch (_) { return null; }
   };
+
+  // ---------------------------------------------------------------------
+  // Passkeys and security keys (WebAuthn). WKWebView runs WebAuthn only for
+  // apps with Apple's web-browser entitlement, which this app doesn't have,
+  // so every attempt fails. Sign-in pages that see the API keep offering it:
+  // Google's 2-Step Verification asks for a passkey or a phone nearby and
+  // fails with "make sure Bluetooth is on". Hide the API so pages offer
+  // another method, and if one calls it anyway, fail at once and tell the
+  // app, which explains what to use instead.
+  // ---------------------------------------------------------------------
+  try { delete window.PublicKeyCredential; } catch (_) {}
+  const credentials = navigator.credentials;
+  if (credentials) {
+    let told = false;
+    for (const name of ["get", "create"]) {
+      const original = credentials[name];
+      if (typeof original !== "function") continue;
+      credentials[name] = function (options) {
+        if (!options || !options.publicKey) return original.apply(this, arguments);
+        // Passkey autofill ("conditional" mediation) runs quietly on page
+        // load; only an explicit request is worth explaining.
+        if (options.mediation !== "conditional" && !told) {
+          told = true;
+          post({ type: "webauthn" });
+        }
+        return Promise.reject(new DOMException(
+          "Passkeys and security keys aren't available in this app.", "NotAllowedError"));
+      };
+    }
+  }
 
   // ---------------------------------------------------------------------
   // Browser identity. Services pick their client by device: GeForce NOW sends
