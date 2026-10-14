@@ -247,6 +247,16 @@ builds and tests the app.
 
 ## Known risks and what to try
 
+- **Passkeys and security keys.** WKWebView runs WebAuthn only for apps
+  with Apple's web-browser entitlement, which Mouselook doesn't have, so
+  passkeys and security keys can't work. Google's 2-Step Verification used
+  to offer them anyway and fail with "make sure Bluetooth is on". The
+  polyfill now hides `PublicKeyCredential` so sign-in pages offer another
+  method, and turns any WebAuthn request that still comes into an immediate
+  `NotAllowedError` plus a toast that says to choose another way, such as a
+  code from an authenticator app. The real fix would be the
+  `com.apple.developer.web-browser` entitlement, which requires Mouselook to
+  qualify as a default-browser app.
 - **`event.isTrusted`.** Synthetic events have `isTrusted === false`. Tested
   in the simulator (Sept 2026): GeForce NOW doesn't filter on it. Each
   `__pointerLocker.batch([["m",dx,dy]])` while locked becomes one message on

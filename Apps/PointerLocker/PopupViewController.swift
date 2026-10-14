@@ -5,6 +5,8 @@ import WebKit
 /// WebKit requires the returned web view to use the configuration it passed us.
 final class PopupViewController: UIViewController, WKUIDelegate {
     let webView: WKWebView
+    /// Messages about this popup's page, shown over it rather than behind it.
+    let toast = ToastView()
 
     init(configuration: WKWebViewConfiguration, userAgent: String?) {
         webView = WKWebView(frame: .zero, configuration: configuration)
@@ -23,6 +25,7 @@ final class PopupViewController: UIViewController, WKUIDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        toast.install(in: view)
         navigationItem.leftBarButtonItem = UIBarButtonItem(systemItem: .close, primaryAction: UIAction { [weak self] _ in
             self?.dismiss(animated: true)
         })
