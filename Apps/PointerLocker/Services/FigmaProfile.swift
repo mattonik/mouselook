@@ -14,7 +14,7 @@ extension ServiceProfile {
         // asks for the lock. Everything else it needs (WebGL 2, WebAssembly
         // SIMD, workers, OffscreenCanvas) is in WebKit.
         identity: .macChrome,
-        // No stream to keep alive; Figma saves as you go.
+        // No game session; Figma saves as you go.
         sessionPhaseScript: "0",
         tagline: "Collaborative design tool",
         artwork: ServiceArtwork(

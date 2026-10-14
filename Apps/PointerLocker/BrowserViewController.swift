@@ -12,8 +12,7 @@ import WebKit
 ///  3. Hold Escape, ⌘., three-finger tap, app switch, navigation or the system
 ///     dropping the lock → page gets `pointerlockchange` and we release.
 ///
-/// The menu lives in +Menu, popups/dialogs/permissions in +WebUI, and the
-/// background keep-alive in BackgroundSessionKeeper.
+/// The menu lives in +Menu, popups/dialogs/permissions in +WebUI.
 final class BrowserViewController: UIViewController {
     private(set) var webView: WKWebView!
     /// Set by RootViewController; Settings uses it to switch services.
@@ -25,7 +24,6 @@ final class BrowserViewController: UIViewController {
     private var crashGuard = CrashLoopGuard()
     private var loadFailure: LoadFailure?
     private let network = NWPathMonitor()
-    private var sessionKeeper: BackgroundSessionKeeper!
     private var hudFeeder: DebugHUDFeeder!
     #if DEBUG
     private var debugBridge: DebugBridge?
@@ -77,7 +75,6 @@ final class BrowserViewController: UIViewController {
             webView.evaluateJavaScript(script) { _, _ in completion() }
         }
 
-        sessionKeeper = BackgroundSessionKeeper(webView: webView)
         hudFeeder = DebugHUDFeeder(webView: webView, bridge: bridge) { [weak self] in
             (self?.pageWantsLock ?? false, self?.isSystemPointerLocked ?? false)
         }
@@ -171,8 +168,11 @@ final class BrowserViewController: UIViewController {
     }
 
     /// Which phase the page's session is in (none / queued-loading / playing).
-    func sessionPhase(_ completion: @escaping (BackgroundSessionKeeper.StreamPhase) -> Void) {
-        sessionKeeper.currentPhase(completion)
+    func sessionPhase(_ completion: @escaping (StreamPhase) -> Void) {
+        guard let webView else { return completion(.none) }
+        webView.evaluateJavaScript(ServiceProfile.current.sessionPhaseScript) { result, _ in
+            completion(StreamPhase(rawValue: result as? Int ?? 0) ?? .none)
+        }
     }
 
     /// Before being replaced (service switch): stop listening to the mouse,
@@ -181,7 +181,6 @@ final class BrowserViewController: UIViewController {
         forceUnlock()
         bridge.invalidate()
         hudFeeder.stop()
-        sessionKeeper.willEnterForeground() // stops any keep-alive
         health.resetSession()
         #if DEBUG
         debugBridge?.stop()
@@ -248,11 +247,11 @@ final class BrowserViewController: UIViewController {
         observers.append(center.addObserver(forName: UIScene.willDeactivateNotification, object: nil, queue: .main) { [weak self] _ in
             self?.forceUnlock()
         })
+        // iPadOS suspends the app soon after it leaves the screen, which ends
+        // a game stream (docs/background-keep-alive.md has the keep-alive this
+        // replaced). Pause media now so nothing is cut off mid-sound.
         observers.append(center.addObserver(forName: UIScene.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.sessionKeeper.didEnterBackground() }
-        })
-        observers.append(center.addObserver(forName: UIScene.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
-            MainActor.assumeIsolated { self?.sessionKeeper.willEnterForeground() }
+            MainActor.assumeIsolated { self?.webView?.pauseAllMediaPlayback() }
         })
     }
 

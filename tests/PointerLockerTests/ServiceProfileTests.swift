@@ -37,7 +37,7 @@ final class ServiceProfileTests: XCTestCase {
         XCTAssertTrue(identity.desktopContentMode)
     }
 
-    func testFigmaHasNoGameSessionToKeepAlive() {
+    func testFigmaHasNoGameSession() {
         XCTAssertEqual(ServiceProfile.figma.sessionPhaseScript, "0")
     }
 

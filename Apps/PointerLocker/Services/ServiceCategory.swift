@@ -33,8 +33,8 @@ enum ServiceCategory: CaseIterable {
         }
     }
 
-    /// Games stream a session that must survive app switches (keep-alive,
-    /// voice chat); tools save as you go.
+    /// Games stream a session (switching services asks first, voice chat);
+    /// tools save as you go.
     var hasGameSession: Bool { self == .play }
 
     /// The services in this world, as a comma-separated list for Welcome.
