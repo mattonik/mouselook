@@ -27,3 +27,6 @@ docs/launch-plan.md
 
 # Local-only drafts: marketing copy, outreach, App Review mail
 private/
+# Screen recordings dropped next to the renders
+store/*.mov
+store/*.mp4
