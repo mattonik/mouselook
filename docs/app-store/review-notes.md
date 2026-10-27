@@ -65,7 +65,7 @@ the scripts bundled with the app. It collects no data; a local diagnostics log
 stays on the device and is only copied to the clipboard when the user taps
 "Copy diagnostics".
 
-**No background modes.** Since build 5 the app declares no background modes.
+**No background modes.** The app declares no background modes.
 When the user leaves the app, it pauses media and iPadOS suspends it as
 usual.
 
