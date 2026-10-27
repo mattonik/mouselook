@@ -99,13 +99,14 @@ On a keyboard without Esc, use **⌘ + Delete** to send Esc to the game (for
 menus). GeForce NOW maps that combination on Safari. You can also remap Caps
 Lock to Escape under Settings ▸ General ▸ Keyboard ▸ Hardware Keyboard ▸
 Modifier Keys.
-- The lock is released automatically when you switch apps, the page
-  navigates, or the system drops the pointer lock (for example, when you enter
-  Stage Manager).
+
+The lock is also released automatically when you switch apps, the page
+navigates, or the system drops the pointer lock (for example, when you enter
+Stage Manager).
 
 ## Build and run
 
-You need a Mac with Xcode 16 or later and [XcodeGen](https://github.com/yonaskolb/XcodeGen).
+You need a Mac with Xcode 26 (the version CI uses) and [XcodeGen](https://github.com/yonaskolb/XcodeGen).
 
 ```sh
 brew install xcodegen
@@ -220,7 +221,10 @@ builds and tests the app.
 | Piece | What it does |
 |---|---|
 | `Services/ServiceProfile.swift` | What's specific to one streaming service: home page, the browser identity the pages see, and how to tell that a session is running. |
-| `Services/GeForceNowProfile.swift` | The GeForce NOW profile and why it looks the way it does. Add another service as another file like this one. |
+| `Services/GeForceNowProfile.swift`, `Services/FigmaProfile.swift` | One file per service: its profile and why it looks the way it does. Add another service as another file like these. |
+| `Onboarding/` | Welcome, Choose your service and Get ready, shown on first launch and from Settings. |
+| `Health/` | Service checks, the diagnostics log and the Copy diagnostics report. |
+| `SettingsView.swift`, `Settings.swift` | The Settings sheet and the values it saves. |
 | `Resources/pointerlock-polyfill.js` | Pointer Lock and Fullscreen APIs in the page. It applies the profile's identity, including inside Web Workers, and turns native input into DOM events. |
 | `MouseBridge.swift` | Raw GCMouse input to the page, one batch per frame, never more than one in flight. |
 | `BrowserViewController*.swift` | The web view and lock state (+Menu, +WebUI for popups, dialogs and permissions). |
