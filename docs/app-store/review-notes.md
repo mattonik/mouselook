@@ -65,25 +65,24 @@ the scripts bundled with the app. It collects no data; a local diagnostics log
 stays on the device and is only copied to the clipboard when the user taps
 "Copy diagnostics".
 
-**Background audio.** Streaming games stop when an app is suspended, and a
-quick switch to another app loses the game session. When the user has chosen
-"Keep game running in background" (Settings, default 5 minutes, can be Off),
-and only while a game is queued or streaming, the app keeps an audio session
-active by playing silence mixed with other audio, so the stream's own audio
-and connection continue. When the chosen time ends, the app pauses all media
-and stops the audio session, and iPadOS suspends it as usual. Nothing plays in
-the background outside a game session.
+**No background modes.** The app declares no background modes.
+When the user leaves the app, it pauses media and iPadOS suspends it as
+usual.
+
+**No login of its own.** Mouselook has no account, sign-up or login. Sign-in
+screens, including "Continue with Google", are the services' own web pages.
 
 **Third-party services.** Figma and GeForce NOW are opened as their normal
 websites; users sign in with their own accounts and subscriptions. Mouselook
 is not affiliated with Figma or NVIDIA and does not change or resell their
 content.
 
-**To review:**
+**To review:** the app needs a **mouse or trackpad and a keyboard**
+connected to the iPad. Without them, pointer lock can't be shown.
 
-- Figma: sign in with [demo account], open the file "[file name]", drag the
-  "X" label in the right panel to the left past the screen edge.
-- GeForce NOW: sign in with [demo account]. Free-tier sessions can wait in a
-  queue; a video of a session is at [link].
-- A mouse or trackpad is needed to see pointer lock. Without one, the app
-  shows a note in onboarding.
+- Figma: sign in with [demo account] and open the file "[file name]". Try:
+  hold Space and drag to pan, hold ⌘ and scroll to zoom, right-click for the
+  context menu, and drag the "W" label in the right panel past the screen
+  edge (the value keeps changing).
+- GeForce NOW (optional): sign in with [demo account]. Free-tier sessions
+  can wait in a queue before a game starts.
