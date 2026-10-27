@@ -20,6 +20,8 @@
 //     ["b", button, down]   button 0 = primary, 1 = middle, 2 = secondary
 //     ["w", dx, dy]         wheel, deltaMode = pixels
 //   native -> page: window.__pointerLocker.forceUnlock()
+//   native -> page: window.__pointerLocker.suspend() / resume()
+//     the app left / came back to the foreground; the lock is kept across it
 (() => {
   "use strict";
   if (window.__pointerLocker) return;
@@ -165,6 +167,9 @@
   let lastY = Math.round(window.innerHeight / 2);
   let buttons = 0; // MouseEvent.buttons bitmask
   let escTimer = null;
+  // The element that held the lock when the app left the foreground, until
+  // it comes back (see suspend/resume at the end).
+  let resumeElement = null;
 
   // Remember where the real cursor was, so synthetic events carry a
   // plausible clientX/clientY (the spec freezes these while locked).
@@ -211,16 +216,18 @@
     document.dispatchEvent(e);
   };
 
+  const releaseButtons = () => {
+    for (let i = BUTTON_BITS.length - 1; i >= 0; i--) {
+      if (buttons & BUTTON_BITS[i]) button(i, false, { click: false });
+    }
+    buttons = 0;
+  };
+
   const setLocked = (el) => {
     const previous = lockedElement;
     // Release held buttons while the element still gets them, highest first,
     // or the game keeps firing/aiming. Not a click: no click/auxclick.
-    if (!el && previous) {
-      for (let i = BUTTON_BITS.length - 1; i >= 0; i--) {
-        if (buttons & BUTTON_BITS[i]) button(i, false, { click: false });
-      }
-      buttons = 0;
-    }
+    if (!el && previous) releaseButtons();
     if (el && !previous) buttons = realButtons;
     lockedElement = el;
     if (el !== previous) {
@@ -482,6 +489,7 @@
       if (e.key !== "Escape" || !lockedElement || e.repeat || escTimer) return;
       escTimer = setTimeout(() => {
         escTimer = null;
+        resumeElement = null;
         unlockAll();
       }, HOLD_ESC_TO_UNLOCK_MS);
     },
@@ -677,7 +685,33 @@
       }
     },
     forceUnlock() {
+      resumeElement = null;
       unlockAll();
+    },
+    // The app left the foreground (app switch, Control Center, a system
+    // alert or banner). Input stops until it's back, so let go of held
+    // buttons and keys, but keep the lock: a game that gets
+    // pointerlockchange shows its "click to resume" screen, and that click
+    // lands wherever the iPadOS pointer was, so the game's cursor jumps.
+    suspend() {
+      if (!lockedElement) return;
+      releaseButtons();
+      releaseKeys();
+      // A page whose lock lasts only while a button is held (Figma's scrub)
+      // lets go on that release; it isn't taken back.
+      resumeElement = lockedElement;
+    },
+    // Back in the foreground. If the page let go of the lock while the app
+    // was away (some pages drop it on blur or visibilitychange, as a desktop
+    // browser would), take it back for the same element. Returns whether
+    // the page is locked now.
+    resume() {
+      const el = resumeElement;
+      resumeElement = null;
+      if (el && !lockedElement && !nativeLocked && el.isConnected && el.ownerDocument === document) {
+        setLocked(el);
+      }
+      return !!lockedElement || nativeLocked;
     },
     get isLocked() {
       return !!lockedElement || nativeLocked;

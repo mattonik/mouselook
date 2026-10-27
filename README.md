@@ -99,9 +99,12 @@ On a keyboard without Esc, use **⌘ + Delete** to send Esc to the game (for
 menus). GeForce NOW maps that combination on Safari. You can also remap Caps
 Lock to Escape under Settings ▸ General ▸ Keyboard ▸ Hardware Keyboard ▸
 Modifier Keys.
-- The lock is released automatically when you switch apps, the page
-  navigates, or the system drops the pointer lock (for example, when you enter
-  Stage Manager).
+- The lock is released automatically when the page navigates or the app stops
+  being full screen (Slide Over, Split View, a Stage Manager window).
+- Switching apps, opening Control Center or a system alert only pauses the
+  mouse: held buttons and keys are let go, and the lock is back when you
+  return, without a click. If the page dropped the lock while the app was
+  away, the app takes it back for the same element.
 
 ## Build and run
 

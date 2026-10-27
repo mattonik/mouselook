@@ -9,8 +9,10 @@ import WebKit
 ///  1. Page calls `element.requestPointerLock()` → polyfill posts `{type: "lock"}`.
 ///  2. We flip `prefersPointerLocked` (UIKit hides and freezes the system
 ///     pointer) and activate MouseBridge (raw GCMouse deltas → page).
-///  3. Hold Escape, ⌘., three-finger tap, app switch, navigation or the system
-///     dropping the lock → page gets `pointerlockchange` and we release.
+///  3. Hold Escape, ⌘., three-finger tap, navigation or leaving full screen
+///     → page gets `pointerlockchange` and we release.
+///  4. Leaving the foreground (app switch, Control Center, a system alert)
+///     only pauses input; the lock comes back with the app.
 ///
 /// The menu lives in +Menu, popups/dialogs/permissions in +WebUI.
 final class BrowserViewController: UIViewController {
@@ -39,6 +41,9 @@ final class BrowserViewController: UIViewController {
 
     private var pageWantsLock = false
     private var systemLocked = false
+    /// The page held the lock when the scene went inactive; cleared when it's
+    /// active again (or the user releases the lock).
+    private var lockSuspended = false
     private var lastUnlock: Date?
     private var observers: [NSObjectProtocol] = []
 
@@ -192,8 +197,9 @@ final class BrowserViewController: UIViewController {
     private func setPageLock(_ locked: Bool, native: Bool = false) {
         guard locked != pageWantsLock else { return }
         pageWantsLock = locked
-        // WebKit's own lock delivers mouse movement itself.
-        bridge.isActive = locked && !native
+        // WebKit's own lock delivers mouse movement itself. While the app is
+        // in the background, input waits for resumeLock().
+        bridge.isActive = locked && !native && !lockSuspended
         if locked { lastLockMode = native ? "native" : "polyfill" }
         if locked { DiagnosticsLog.shared.record("lock", native ? "native" : "polyfill") } else { health.lockReleased() }
         let host = parent ?? self // the root asks this controller via childViewControllerForPointerLock
@@ -216,6 +222,7 @@ final class BrowserViewController: UIViewController {
 
     /// Release from the native side; the page is told via `pointerlockchange`.
     func forceUnlock() {
+        lockSuspended = false
         guard pageWantsLock else { return }
         webView.evaluateJavaScript("window.__pointerLocker&&window.__pointerLocker.forceUnlock()", completionHandler: nil)
         setPageLock(false)
@@ -223,29 +230,36 @@ final class BrowserViewController: UIViewController {
 
     private func lockRefusalDetail(sinceUnlock: TimeInterval?) -> String {
         let scene = view.window?.windowScene
-        let window = view.window?.bounds.size ?? .zero
-        let screen = scene?.screen.bounds.size ?? .zero
-        let fullScreen = window == screen || window == CGSize(width: screen.height, height: screen.width)
-        return LockRefusal.detail(sceneActive: scene?.activationState == .foregroundActive,
+        return LockRefusal.detail(sceneActive: isSceneActive,
                                   screenCaptured: scene?.traitCollection.sceneCaptureState == .active,
-                                  fullScreen: fullScreen, sinceLastUnlock: sinceUnlock)
+                                  fullScreen: isFullScreen, sinceLastUnlock: sinceUnlock)
     }
 
     private var isSystemPointerLocked: Bool {
         view.window?.windowScene?.pointerLockState?.isLocked ?? false
     }
 
+    private var isSceneActive: Bool {
+        view.window?.windowScene?.activationState == .foregroundActive
+    }
+
+    /// Whether the window fills the screen, which iPadOS requires for pointer lock.
+    private var isFullScreen: Bool {
+        let window = view.window?.bounds.size ?? .zero
+        let screen = view.window?.windowScene?.screen.bounds.size ?? .zero
+        return window == screen || window == CGSize(width: screen.height, height: screen.width)
+    }
+
     private func observeSystemState() {
         let center = NotificationCenter.default
         observers.append(center.addObserver(forName: UIPointerLockState.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
-            guard let self else { return }
-            let nowLocked = self.isSystemPointerLocked
-            // The system dropped a lock we had (e.g. Stage Manager, Slide Over).
-            if self.systemLocked && !nowLocked { self.forceUnlock() }
-            self.systemLocked = nowLocked
+            MainActor.assumeIsolated { self?.systemLockChanged() }
         })
         observers.append(center.addObserver(forName: UIScene.willDeactivateNotification, object: nil, queue: .main) { [weak self] _ in
-            self?.forceUnlock()
+            MainActor.assumeIsolated { self?.suspendLock() }
+        })
+        observers.append(center.addObserver(forName: UIScene.didActivateNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.resumeLock() }
         })
         // iPadOS suspends the app soon after it leaves the screen, which ends
         // a game stream (docs/background-keep-alive.md has the keep-alive this
@@ -253,6 +267,55 @@ final class BrowserViewController: UIViewController {
         observers.append(center.addObserver(forName: UIScene.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.webView?.pauseAllMediaPlayback() }
         })
+    }
+
+    /// iPadOS took the pointer lock away (or gave it back).
+    private func systemLockChanged() {
+        let nowLocked = isSystemPointerLocked
+        defer { systemLocked = nowLocked }
+        guard systemLocked, !nowLocked, pageWantsLock, !lockSuspended, isSceneActive else { return }
+        // Slide Over, Split View or a Stage Manager window: no lock until the
+        // app is full screen again, so let the page know.
+        guard isFullScreen else {
+            DiagnosticsLog.shared.record("lock-lost", "not full screen")
+            return forceUnlock()
+        }
+        // Otherwise it's brief (a banner, an alert): keep the page's lock and
+        // ask for the pointer again rather than drop the game to its "click to
+        // resume" screen.
+        DiagnosticsLog.shared.record("lock-lost", "kept")
+        requestSystemLock()
+    }
+
+    /// Leaving the foreground used to end the lock. Coming back then showed the
+    /// iPadOS pointer until the page was clicked, and that click moved the
+    /// game's cursor to wherever the pointer was. Now input pauses (held
+    /// buttons and keys are let go) and the lock stays: prefersPointerLocked
+    /// is still true, so iPadOS locks the pointer again on return.
+    private func suspendLock() {
+        guard pageWantsLock, !lockSuspended else { return }
+        lockSuspended = true
+        bridge.isActive = false
+        webView.evaluateJavaScript("window.__pointerLocker&&window.__pointerLocker.suspend()", completionHandler: nil)
+    }
+
+    /// Back in the foreground: resume input, and if the page let go of the
+    /// lock while away, the polyfill takes it back (its "lock" message
+    /// arrives as usual).
+    private func resumeLock() {
+        guard lockSuspended else { return }
+        lockSuspended = false
+        if pageWantsLock { bridge.isActive = lastLockMode == "polyfill" }
+        webView.evaluateJavaScript("window.__pointerLocker&&window.__pointerLocker.resume()") { result, _ in
+            DiagnosticsLog.shared.record("lock-resume", result as? Bool == true ? "locked" : "unlocked")
+        }
+        requestSystemLock()
+    }
+
+    /// Ask UIKit to apply prefersPointerLocked again.
+    private func requestSystemLock() {
+        guard pageWantsLock else { return }
+        (parent ?? self).setNeedsUpdateOfPrefersPointerLocked()
     }
 
     // MARK: - Page recovery

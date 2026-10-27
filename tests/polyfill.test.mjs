@@ -278,6 +278,91 @@ await test("unlocking with buttons held releases them first", async () => {
   assert.equal(log.some(([t]) => /click|contextmenu/.test(t)), false, "a forced release is not a click");
 });
 
+await test("suspend keeps the lock and releases held buttons without a click", async () => {
+  const r = await page.evaluate(async () => {
+    document.getElementById("c").requestPointerLock();
+    await new Promise((r) => setTimeout(r, 0));
+    window.__pointerLocker.batch([["b", 0, true]]);
+    window.__log = [];
+    const changes = window.__changes;
+    window.__native.length = 0;
+    window.__pointerLocker.suspend();
+    await new Promise((r) => setTimeout(r, 0));
+    const result = {
+      log: window.__log.map((e) => [e.t, e.button, e.buttons]),
+      locked: document.pointerLockElement?.id,
+      changes: window.__changes - changes,
+      native: [...window.__native],
+      resumed: window.__pointerLocker.resume(),
+    };
+    await new Promise((r) => setTimeout(r, 0));
+    result.native = result.native.concat(window.__native.slice(result.native.length));
+    return result;
+  });
+  assert.deepEqual(r.log, [["pointerup", 0, 0], ["mouseup", 0, 0]]);
+  assert.equal(r.locked, "c");
+  assert.equal(r.changes, 0, "the page sees no pointerlockchange");
+  assert.deepEqual(r.native, [], "the app is not told the lock ended");
+  assert.equal(r.resumed, true);
+  await page.evaluate(() => document.exitPointerLock());
+});
+
+await test("resume takes back a lock the page dropped while the app was away", async () => {
+  const r = await page.evaluate(async () => {
+    document.getElementById("c").requestPointerLock();
+    await new Promise((r) => setTimeout(r, 0));
+    window.__pointerLocker.suspend();
+    document.exitPointerLock(); // the page lets go on blur
+    await new Promise((r) => setTimeout(r, 0));
+    window.__native.length = 0;
+    const changes = window.__changes;
+    const resumed = window.__pointerLocker.resume();
+    await new Promise((r) => setTimeout(r, 0));
+    return { resumed, locked: document.pointerLockElement?.id, native: [...window.__native],
+             changes: window.__changes - changes, again: window.__pointerLocker.resume() };
+  });
+  assert.equal(r.resumed, true);
+  assert.equal(r.locked, "c");
+  assert.deepEqual(r.native, ["lock"]);
+  assert.equal(r.changes, 1);
+  await page.evaluate(() => document.exitPointerLock());
+  assert.equal(await page.evaluate(() => window.__pointerLocker.resume()), false, "only once");
+});
+
+await test("resume doesn't undo a release the user asked for, or relock a removed element", async () => {
+  const r = await page.evaluate(async () => {
+    document.getElementById("c").requestPointerLock();
+    window.__pointerLocker.suspend();
+    window.__pointerLocker.forceUnlock(); // ⌘., three-finger tap, Settings
+    const afterForce = window.__pointerLocker.resume();
+    document.body.insertAdjacentHTML("beforeend", `<canvas id="gone"></canvas>`);
+    document.getElementById("gone").requestPointerLock();
+    window.__pointerLocker.suspend();
+    document.getElementById("gone").remove();
+    await new Promise((r) => setTimeout(r, 0));
+    return { afterForce, afterRemove: window.__pointerLocker.resume(), locked: document.pointerLockElement };
+  });
+  assert.deepEqual(r, { afterForce: false, afterRemove: false, locked: null });
+});
+
+await test("a lock that ends with the button (a scrub) isn't taken back", async () => {
+  const r = await page.evaluate(async () => {
+    const c = document.getElementById("c");
+    const onUp = () => document.exitPointerLock();
+    c.addEventListener("mouseup", onUp);
+    c.requestPointerLock();
+    window.__pointerLocker.batch([["b", 0, true]]);
+    window.__pointerLocker.suspend(); // the release ends the scrub
+    c.removeEventListener("mouseup", onUp);
+    return { resumed: window.__pointerLocker.resume(), locked: document.pointerLockElement };
+  });
+  assert.deepEqual(r, { resumed: false, locked: null });
+});
+
+await test("suspend while unlocked does nothing", async () => {
+  assert.equal(await page.evaluate(() => { window.__pointerLocker.suspend(); return window.__pointerLocker.resume(); }), false);
+});
+
 await test("held keys are released when the page loses focus", async () => {
   await page.evaluate(() => {
     window.__ups = [];
