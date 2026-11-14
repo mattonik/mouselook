@@ -467,6 +467,50 @@ await test("a blur during an interruption is kept, even if the page let go of th
   await page.evaluate(() => document.exitPointerLock());
 });
 
+await test("GeForce NOW-like client stays in sync across an interruption (no cursor jump on click)", async () => {
+  // Mirrors GeForce NOW's web client: it drops the lock on window blur, keeps
+  // its own lock state (set only when its request resolves), ignores movement
+  // while it wants the lock but thinks it doesn't have it, and on a click in
+  // that state takes the cursor position from the event (the frozen
+  // synthetic clientX/Y), so the cursor jumps.
+  const r = await page.evaluate(async () => {
+    const c = document.getElementById("c");
+    const gfn = { state: "unlocked", focused: true, moves: 0, jumps: 0 };
+    const relock = () => {
+      gfn.state = "pending";
+      c.requestPointerLock().then(() => { gfn.state = "locked"; });
+    };
+    const onBlur = () => { gfn.focused = false; gfn.state = "exiting"; document.exitPointerLock(); };
+    const onFocus = () => { gfn.focused = true; };
+    const onChange = () => { if (!document.pointerLockElement) gfn.state = "unlocked"; };
+    const onMove = () => { if (gfn.focused && gfn.state === "locked") gfn.moves++; };
+    const onDown = () => { if (gfn.state !== "locked") { gfn.jumps++; relock(); } };
+    window.addEventListener("blur", onBlur);
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("pointerlockchange", onChange);
+    c.addEventListener("pointermove", onMove);
+    c.addEventListener("pointerdown", onDown);
+    relock();
+    await new Promise((r) => setTimeout(r, 0));
+    window.__pointerLocker.suspend();          // Control Center, an app switch
+    window.dispatchEvent(new FocusEvent("blur"));
+    await new Promise((r) => setTimeout(r, 0));
+    window.__pointerLocker.resume();
+    window.dispatchEvent(new FocusEvent("focus"));
+    await new Promise((r) => setTimeout(r, 0));
+    window.__pointerLocker.batch([["m", 3, 0], ["b", 0, true], ["b", 0, false]]);
+    window.removeEventListener("blur", onBlur);
+    window.removeEventListener("focus", onFocus);
+    document.removeEventListener("pointerlockchange", onChange);
+    c.removeEventListener("pointermove", onMove);
+    c.removeEventListener("pointerdown", onDown);
+    document.exitPointerLock();
+    return gfn;
+  });
+  assert.equal(r.jumps, 0, "a click after coming back doesn't move the game's cursor");
+  assert.ok(r.moves > 0, "the mouse still moves the game");
+});
+
 await test("the app is told why the lock ended", async () => {
   const reasons = await page.evaluate(async () => {
     const c = document.getElementById("c");
