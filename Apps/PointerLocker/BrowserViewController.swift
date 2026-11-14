@@ -9,7 +9,7 @@ import WebKit
 ///  1. Page calls `element.requestPointerLock()` → polyfill posts `{type: "lock"}`.
 ///  2. We flip `prefersPointerLocked` (UIKit hides and freezes the system
 ///     pointer) and activate MouseBridge (raw GCMouse deltas → page).
-///  3. Hold Escape, ⌘., three-finger tap, navigation or leaving full screen
+///  3. Hold Escape, ⌘., three-finger tap (not in games), navigation or leaving full screen
 ///     → page gets `pointerlockchange` and we release.
 ///  4. Leaving the foreground (app switch, Control Center, a system alert)
 ///     only pauses input; the lock comes back with the app.
@@ -412,6 +412,7 @@ final class BrowserViewController: UIViewController {
     }
 
     @objc private func threeFingerTap() {
+        guard ServiceProfile.current.releasesOnThreeFingerTap else { return }
         forceUnlock()
     }
 }

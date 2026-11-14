@@ -37,6 +37,14 @@ final class ServiceProfileTests: XCTestCase {
         XCTAssertTrue(identity.desktopContentMode)
     }
 
+    func testThreeFingerTapDoesNotReleaseTheMouseInGames() {
+        XCTAssertFalse(ServiceProfile.geforceNow.releasesOnThreeFingerTap)
+        XCTAssertFalse(ServiceProfile.geforceNow.wording.release.localizedCaseInsensitiveContains("three fingers"))
+        XCTAssertTrue(ServiceProfile.geforceNow.wording.release.contains("Hold Esc"))
+        XCTAssertTrue(ServiceProfile.figma.releasesOnThreeFingerTap)
+        XCTAssertTrue(ServiceProfile.generic.releasesOnThreeFingerTap)
+    }
+
     func testFigmaHasNoGameSession() {
         XCTAssertEqual(ServiceProfile.figma.sessionPhaseScript, "0")
     }

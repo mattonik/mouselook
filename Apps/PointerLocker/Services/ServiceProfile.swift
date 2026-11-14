@@ -72,6 +72,10 @@ struct ServiceProfile {
     let category: ServiceCategory
     /// The health checks this service runs (HealthCheck.swift).
     let healthChecks: [HealthCheckID]
+    /// Whether a three-finger tap releases the lock. Games can turn it off:
+    /// hands on the screen mid-game shouldn't drop the mouse. Hold Esc and
+    /// ⌘ + . always release it.
+    var releasesOnThreeFingerTap = true
 
     static let all: [ServiceProfile] = [.geforceNow, .figma, .generic]
 

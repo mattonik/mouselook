@@ -99,7 +99,8 @@ client, which never requests pointer lock. You can turn this off in the menu.
 - **⌘ + .** (Command-period), for keyboards without an Esc key, such as the
   2020–2022 Magic Keyboard or the Smart Keyboard Folio. The app handles it, so
   the game never receives it.
-- **Three-finger tap** on the screen.
+- **Three-finger tap** on the screen, except in GeForce NOW, where a hand on
+  the screen mid-game shouldn't drop the mouse.
 
 On a keyboard without Esc, use **⌘ + Delete** to send Esc to the game (for
 menus). GeForce NOW maps that combination on Safari. You can also remap Caps
