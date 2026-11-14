@@ -12,7 +12,9 @@
 // Protocol
 //   page -> native: webkit.messageHandlers.pointerLocker.postMessage({type})
 //     {type: "lock"}    page called requestPointerLock()
-//     {type: "unlock"}  lock ended (exitPointerLock, hold-Esc, detach, ...)
+//     {type: "unlock", reason}  lock ended; reason is "page" (exitPointerLock),
+//                       "esc" (held Escape), "app" (forceUnlock) or "detached"
+//     {type: "blur-kept"} the window lost focus while locked; the page wasn't told
 //     {type: "webauthn"} the page asked for a passkey or security key, which
 //                        WKWebView can't provide here (once per page)
 //   native -> page: window.__pointerLocker.batch([[kind, ...args], ...])
@@ -206,7 +208,6 @@
       { capture: true, passive: true }
     );
   }
-  window.addEventListener("blur", () => { realButtons = 0; releasedEarly = false; });
   const RELEASES = new Set(["pointerup", "mouseup", "click", "auxclick"]);
 
   const ownEvents = new WeakSet(); // events the polyfill itself dispatches
@@ -223,7 +224,7 @@
     buttons = 0;
   };
 
-  const setLocked = (el) => {
+  const setLocked = (el, reason) => {
     const previous = lockedElement;
     // Release held buttons while the element still gets them, highest first,
     // or the game keeps firing/aiming. Not a click: no click/auxclick.
@@ -231,7 +232,8 @@
     if (el && !previous) buttons = realButtons;
     lockedElement = el;
     if (el !== previous) {
-      post({ type: el ? "lock" : "unlock", mode: "polyfill" });
+      post(el ? { type: "lock", mode: "polyfill" } : { type: "unlock", mode: "polyfill", reason });
+      if (!el) endKeptBlur();
       // Real browsers fire this as a task after the state change.
       setTimeout(() => dispatchDocEvent("pointerlockchange"), 0);
     }
@@ -335,13 +337,13 @@
     }
   }, true);
 
-  const unlockAll = () => {
+  const unlockAll = (reason) => {
     if (nativeLocked && native.exit) native.exit.call(document);
-    setLocked(null);
+    setLocked(null, reason);
   };
 
   function exitPointerLock() {
-    unlockAll();
+    unlockAll("page");
   }
 
   const defineMethod = (proto, name, fn) => {
@@ -433,7 +435,7 @@
 
   // If the locked element leaves the document, the lock ends (per spec).
   new MutationObserver(() => {
-    if (lockedElement && !lockedElement.isConnected) setLocked(null);
+    if (lockedElement && !lockedElement.isConnected) setLocked(null, "detached");
   }).observe(document, { childList: true, subtree: true });
 
   // Keys held when the page loses focus (app switch, dialog, ⌘-Tab) never
@@ -456,7 +458,52 @@
       target.dispatchEvent(e);
     }
   };
-  window.addEventListener("blur", releaseKeys);
+
+  // ---------------------------------------------------------------------
+  // Window focus while locked. A desktop browser only takes focus from a
+  // page when the user goes elsewhere, which also ends the lock. On iPad the
+  // window blurs on its own: an interruption (Control Center, an alert, an
+  // app switch) or the web view briefly losing keyboard focus, while the app
+  // keeps the lock. GeForce NOW answers a blur by letting go of the lock,
+  // ignores all mouse movement until it sees focus again, and only takes the
+  // lock back after a click: the game stops responding to the mouse. So
+  // while the lock is held (or kept across an interruption) the page isn't
+  // told; it still gets the key and button releases it would on a blur, and
+  // document.hasFocus() stays true. If the lock ends while the window is
+  // still unfocused, the page gets its blur then.
+  // ---------------------------------------------------------------------
+  const nativeHasFocus = Document.prototype.hasFocus;
+  let blurKept = false;
+  const reallyFocused = () => {
+    try { return nativeHasFocus.call(document); } catch (_) { return true; }
+  };
+  window.addEventListener("blur", (e) => {
+    if (e.target !== window || ownEvents.has(e)) return;
+    realButtons = 0;
+    releasedEarly = false;
+    releaseKeys();
+    if (!lockedElement && !nativeLocked && !resumeElement) return;
+    e.stopImmediatePropagation();
+    if (!blurKept) post({ type: "blur-kept" });
+    blurKept = true;
+  }, true);
+  window.addEventListener("focus", (e) => {
+    if (e.target === window) blurKept = false;
+  }, true);
+  const endKeptBlur = () => {
+    if (!blurKept || resumeElement) return;
+    blurKept = false;
+    if (reallyFocused()) return;
+    setTimeout(() => {
+      if (lockedElement || reallyFocused()) return;
+      const e = new FocusEvent("blur");
+      ownEvents.add(e);
+      window.dispatchEvent(e);
+    }, 0);
+  };
+  defineMethod(Document.prototype, "hasFocus", function hasFocus() {
+    return (this === document && blurKept) || nativeHasFocus.call(this);
+  });
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") releaseKeys();
   });
@@ -490,7 +537,7 @@
       escTimer = setTimeout(() => {
         escTimer = null;
         resumeElement = null;
-        unlockAll();
+        unlockAll("esc");
       }, HOLD_ESC_TO_UNLOCK_MS);
     },
     true
@@ -686,7 +733,7 @@
     },
     forceUnlock() {
       resumeElement = null;
-      unlockAll();
+      unlockAll("app");
     },
     // The app left the foreground (app switch, Control Center, a system
     // alert or banner). Input stops until it's back, so let go of held
@@ -711,6 +758,7 @@
       if (el && !lockedElement && !nativeLocked && el.isConnected && el.ownerDocument === document) {
         setLocked(el);
       }
+      if (!lockedElement && !nativeLocked) endKeptBlur();
       return !!lockedElement || nativeLocked;
     },
     get isLocked() {

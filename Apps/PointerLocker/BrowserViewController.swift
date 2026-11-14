@@ -208,6 +208,7 @@ final class BrowserViewController: UIViewController {
         UIView.animate(withDuration: 0.2) { self.menuButton.alpha = locked ? 0 : 0.6 }
 
         if locked {
+            focusWebView()
             let sinceUnlock = lastUnlock.map { Date().timeIntervalSince($0) }
             // UIKit only honours pointer lock for a full-screen, frontmost scene.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) { [weak self] in
@@ -309,7 +310,15 @@ final class BrowserViewController: UIViewController {
         webView.evaluateJavaScript("window.__pointerLocker&&window.__pointerLocker.resume()") { result, _ in
             DiagnosticsLog.shared.record("lock-resume", result as? Bool == true ? "locked" : "unlocked")
         }
+        focusWebView()
         requestSystemLock()
+    }
+
+    /// Keyboard focus to the page, so it gets its keys and sees its window as
+    /// focused. Games stop listening to the mouse when their window blurs.
+    private func focusWebView() {
+        guard pageWantsLock, presentedViewController == nil else { return }
+        webView.becomeFirstResponder()
     }
 
     /// Ask UIKit to apply prefersPointerLocked again.
@@ -422,10 +431,18 @@ extension BrowserViewController: WKScriptMessageHandler {
               let type = body["type"] as? String
         else { return }
         if let lock = LockMessage(body) {
+            if !lock.locked, pageWantsLock, let reason = body["reason"] as? String {
+                DiagnosticsLog.shared.record("unlock", reason)
+            }
             setPageLock(lock.locked, native: lock.native)
             return
         }
         switch type {
+        case "blur-kept":
+            // The page lost focus while locked and wasn't told (the polyfill
+            // explains why); ask for keyboard focus back if the app is active.
+            DiagnosticsLog.shared.record("blur-kept", isSceneActive ? "active" : "inactive")
+            if isSceneActive { focusWebView() }
         case "health":
             health.receive(check: body["check"] as? String ?? "", result: body["result"] as? String ?? "",
                            code: body["code"] as? String ?? "", host: webView.url?.host ?? "", locked: pageWantsLock)

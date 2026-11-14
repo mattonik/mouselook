@@ -72,6 +72,12 @@ What the polyfill provides:
 - Real mouse events are swallowed while the lock is on, so clicks aren't
   delivered twice.
 - The lock is released when the locked element is removed from the document.
+- While the lock is held, the page isn't told when its window loses focus.
+  iPadOS blurs the web view on its own (an interruption, a brief loss of
+  keyboard focus) while the app keeps the lock, and GeForce NOW answers a blur
+  by dropping the lock and ignoring the mouse until the next click. Held keys
+  are still released, and if the lock ends while the window is still
+  unfocused, the page gets its blur then.
 - The Fullscreen API is emulated in the page: the element is pinned over the
   viewport. The app is already full screen, and native element fullscreen
   would move the web view out of the app's view controller. Pointer lock would
@@ -106,6 +112,9 @@ Switching apps, opening Control Center or a system alert only pauses the
 mouse: held buttons and keys are let go, and the lock is back when you return,
 without a click. If the page dropped the lock while the app was away, the app
 takes it back for the same element.
+
+Copy diagnostics logs why each lock ended (`unlock page`, `esc`, `app` or
+`detached`) and each focus loss kept from the page (`blur-kept`).
 
 ## Build and run
 

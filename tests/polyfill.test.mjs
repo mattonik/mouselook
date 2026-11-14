@@ -380,6 +380,108 @@ await test("held keys are released when the page loses focus", async () => {
   await page.keyboard.up("KeyW");
 });
 
+await test("a window blur while locked doesn't reach the page, which keeps the lock", async () => {
+  await page.keyboard.down("KeyW");
+  const r = await page.evaluate(async () => {
+    window.__blurs = 0;
+    window.addEventListener("blur", () => window.__blurs++);
+    window.__ups = [];
+    document.getElementById("c").requestPointerLock();
+    window.__pointerLocker.batch([["b", 0, true]]);
+    await new Promise((r) => setTimeout(r, 0));
+    window.__log = [];
+    window.__messages = [];
+    window.dispatchEvent(new FocusEvent("blur"));
+    window.dispatchEvent(new FocusEvent("blur"));
+    await new Promise((r) => setTimeout(r, 0));
+    return { blurs: window.__blurs, focused: document.hasFocus(), locked: document.pointerLockElement?.id,
+             ups: window.__ups.map(([code]) => code), messages: window.__messages.map((m) => m.type) };
+  });
+  await page.keyboard.up("KeyW");
+  assert.equal(r.blurs, 0, "GeForce NOW drops the lock and ignores the mouse on blur");
+  assert.equal(r.focused, true);
+  assert.equal(r.locked, "c");
+  assert.deepEqual(r.ups, ["KeyW"], "held keys are still released");
+  assert.deepEqual(r.messages, ["blur-kept"], "the app is told once");
+  // The real button is still held: the release goes through as usual.
+  await page.evaluate(() => window.__pointerLocker.batch([["b", 0, false]]));
+});
+
+await test("focus coming back ends the kept blur", async () => {
+  const r = await page.evaluate(async () => {
+    window.dispatchEvent(new FocusEvent("focus"));
+    document.exitPointerLock();
+    await new Promise((r) => setTimeout(r, 10));
+    return { blurs: window.__blurs, messages: window.__messages.map((m) => m.type) };
+  });
+  assert.equal(r.blurs, 0, "no late blur once focus is back");
+  assert.deepEqual(r.messages, ["blur-kept", "unlock"]);
+});
+
+await test("a lock that ends while the window is still unfocused gives the page its blur", async () => {
+  // The browser's own focus, controlled here (headless pages always have it).
+  const p = await browser.newPage();
+  await p.addInitScript({ content: noNativeLock + stub +
+    "window.__focused = true; Document.prototype.hasFocus = function () { return window.__focused; };" });
+  await p.addInitScript({ content: polyfill });
+  await p.goto(`data:text/html,<canvas id="c" width="100" height="100"></canvas>`);
+  const r = await p.evaluate(async () => {
+    window.__blurs = 0;
+    window.addEventListener("blur", () => window.__blurs++);
+    document.getElementById("c").requestPointerLock();
+    window.__focused = false;
+    window.dispatchEvent(new FocusEvent("blur"));
+    const during = { blurs: window.__blurs, focused: document.hasFocus() };
+    window.__pointerLocker.forceUnlock();
+    await new Promise((r) => setTimeout(r, 10));
+    return { during, blurs: window.__blurs, focused: document.hasFocus() };
+  });
+  await p.close();
+  assert.deepEqual(r.during, { blurs: 0, focused: true });
+  assert.equal(r.blurs, 1);
+  assert.equal(r.focused, false);
+});
+
+await test("a blur while unlocked reaches the page as usual", async () => {
+  const r = await page.evaluate(() => {
+    const before = window.__blurs;
+    window.dispatchEvent(new FocusEvent("blur"));
+    return window.__blurs - before;
+  });
+  assert.equal(r, 1);
+});
+
+await test("a blur during an interruption is kept, even if the page let go of the lock", async () => {
+  const r = await page.evaluate(async () => {
+    const before = window.__blurs;
+    document.getElementById("c").requestPointerLock();
+    window.__pointerLocker.suspend();
+    document.exitPointerLock(); // a page that lets go on visibilitychange
+    window.dispatchEvent(new FocusEvent("blur"));
+    const resumed = window.__pointerLocker.resume();
+    window.dispatchEvent(new FocusEvent("focus"));
+    await new Promise((r) => setTimeout(r, 0));
+    return { blurs: window.__blurs - before, resumed, locked: document.pointerLockElement?.id };
+  });
+  assert.deepEqual(r, { blurs: 0, resumed: true, locked: "c" });
+  await page.evaluate(() => document.exitPointerLock());
+});
+
+await test("the app is told why the lock ended", async () => {
+  const reasons = await page.evaluate(async () => {
+    const c = document.getElementById("c");
+    window.__messages = [];
+    c.requestPointerLock(); document.exitPointerLock();
+    c.requestPointerLock(); window.__pointerLocker.forceUnlock();
+    document.body.insertAdjacentHTML("beforeend", `<canvas id="leaving"></canvas>`);
+    const leaving = document.getElementById("leaving");
+    leaving.requestPointerLock(); leaving.remove();
+    await new Promise((r) => setTimeout(r, 0));
+    return window.__messages.filter((m) => m.type === "unlock").map((m) => m.reason);
+  });
+  assert.deepEqual(reasons, ["page", "app", "detached"]);
+});
+
 await test("removing the locked element releases the lock", async () => {
   await page.evaluate(() => document.getElementById("c").requestPointerLock());
   await page.evaluate(() => document.getElementById("c").remove());
