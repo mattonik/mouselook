@@ -23,6 +23,7 @@ final class BrowserViewController: UIViewController {
     let menuButton = UIButton(type: .system)
     private let toast = ToastView()
     private let statusOverlay = StatusOverlayView()
+    private let loadingView = LoadingView()
     private var crashGuard = CrashLoopGuard()
     private var loadFailure: LoadFailure?
     private let network = NWPathMonitor()
@@ -85,6 +86,9 @@ final class BrowserViewController: UIViewController {
         }
         hudFeeder.update()
 
+        loadingView.frame = view.bounds
+        loadingView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        view.addSubview(loadingView)
         statusOverlay.frame = view.bounds
         statusOverlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         view.addSubview(statusOverlay)
@@ -112,6 +116,10 @@ final class BrowserViewController: UIViewController {
             if let url = webView.url { Settings.rememberPage(url, for: .current) }
         }
         webView.load(URLRequest(url: Settings.startPage))
+        loadingView.show(serviceName: ServiceProfile.current.name) { [weak self] in
+            guard let self else { return }
+            if self.webView.url == nil { self.webView.load(URLRequest(url: Settings.startPage)) } else { self.webView.reload() }
+        }
     }
 
     /// Rebuild scripts and user agent after a settings change, then reload.
@@ -325,6 +333,7 @@ final class BrowserViewController: UIViewController {
     private func handleLoadError(_ error: Error) {
         guard let failure = LoadFailure(error) else { return }
         setPageLock(false)
+        loadingView.hide()
         loadFailure = failure
         let nsError = error as NSError
         DiagnosticsLog.shared.record("load-failure", "\(nsError.domain) \(nsError.code) \(failure.url?.host ?? "")")
@@ -466,6 +475,11 @@ extension BrowserViewController: WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         handleLoadError(error)
+    }
+
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        // The first page is up: the loading cover goes (it's shown only once).
+        loadingView.hide()
     }
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
