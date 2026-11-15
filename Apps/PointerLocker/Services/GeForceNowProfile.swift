@@ -47,10 +47,13 @@ extension ServiceProfile {
             mouseTest: "Move it and watch the check mark. If it reacts, games can see the mouse too.",
             keyboardReady: "Ready for WASD.",
             lockReady: "The mouse can lock to the game.",
-            release: "Hold Esc, press ⌘ + ., or tap the screen with three fingers. To send Esc to the game, press ⌘ + Delete.",
+            release: "Hold Esc or press ⌘ + . to release the mouse. To send Esc to the game, press ⌘ + Delete.",
             start: "Start playing"
         ),
         category: .play,
-        healthChecks: [.desktopClient, .lockOnClick]
+        healthChecks: [.desktopClient, .lockOnClick],
+        // A three-finger touch mid-game (resting a hand on the screen) would
+        // drop the mouse out of the game.
+        releasesOnThreeFingerTap: false
     )
 }
